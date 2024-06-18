@@ -5,7 +5,7 @@ export default defineConfig({
   title: "My Web Note",
   description: "for study and write something about Web",
   outDir:"docs",// 输出目录
-  base:"/docs/",// 输出时带上路径以免css的等失效
+  base:"/notes/",// 输出时带上路径以免css的等失效
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     nav: [
