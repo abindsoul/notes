@@ -17,22 +17,21 @@ export default defineConfig({
       {
         text: 'HTML',
         items: [
-          { text: '示例1', link: '/html-md/cs-01.md' },
-          { text: '示例2', link: '/html-md/cs-02.md' }
+          { text: 'HTML基础', link: '/html-md/basis.md' },
         ]
       },
       {
         text: 'CSS',
         items: [
-          { text: '左侧1', link: '/markdown-examples' },
-          { text: '左侧2', link: '/api-examples' }
+          { text: 'CSS基础', link: '/css-md/basis.md' },
         ]
       },
       {
         text: 'JavaScript',
         items: [
-          { text: '左侧1', link: '/markdown-examples' },
-          { text: '左侧2', link: '/api-examples' }
+          { text: 'JS基础', link: '/js-md/basis.md' },
+          { text: 'JS进阶', link: '/js-md/progress.md' },
+
         ]
       },
       {
