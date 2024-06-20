@@ -8,6 +8,11 @@ export default defineConfig({
   base:"/notes/",// 输出时带上路径以免css的等失效
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
+    logo: {
+      light:'/public/image/logo.png',
+      dark: '/public/image/logo_hover.png'
+    }
+    ,
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Notes', link: '/markdown-examples' }
@@ -39,6 +44,14 @@ export default defineConfig({
         items: [
           { text: '左侧1', link: '/markdown-examples' },
           { text: '左侧2', link: '/api-examples' }
+        ]
+      },
+      {
+        text: 'Node',
+        items: [
+          { text: '基础', link: '/node-md/basis.md' },
+          { text: '进阶', link: '/node-md/progress.md'}
+
         ]
       }
     ],

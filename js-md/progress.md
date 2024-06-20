@@ -121,6 +121,62 @@ MDN 对闭包的定义为：闭包是指那些能够访问自由变量的函数
 
 ## 原型和原型链
 
+### 原型
+
+在 JavaScript 中函数也是对象
+
+`__proto__`、 `constructor` 属性是对象所独有的
+
+`prototype` 属性是函数独有的
+
+上面说过js中函数也是对象的一种，那么函数同样也有属性 `__proto__`、 `constructor`
+
+看下面例子
+
+```script
+// 一个普通函数
+function Father(){
+
+};
+// = 左边是实例化后的对象， = 右边就是构造函数，从左到右的过程就是实例化
+let father = new Father();
+
+// 左边对象有两个属性，constructor和__ proto __
+// 右边的构造函数有prototype 
+//  constructor 属性用于记录实例是由哪个构造函数创建
+    console.log(father.__proto__);// 存在
+    console.log(father.constructor);// Father()函数
+    console.log(father.prototype);// undefined
+
+    console.log(Father.prototype);// 存在
+    console.log(Father.prototype.constructor);// Father()函数
+    console.log(Father.__proto__);// 存在
+
+    console.log(father.__proto__ === Father.prototype);// true
+```
+
+这样你就可以看到 这个 `constructor` 其实是构造函数 `Father` 的 `prototype` 的一个属性
+
+ `father` 的原型对象就是指 `Father.prototype` ,(`Father.prototype`又称为显式原型, `father` 的 `__proto__` 又称为隐式原型)
+
+ `father` 的对象原型就是指 `Father.prototype.constructor` 的值，它指向了 `Father()` 函数
+
+ `constructor` 仅供于记录实例是由哪个构造函数创建，而 `prototype` 才是用来记录属性和方法的地方
+
+
+
+### 原型链
+
+你可以把 `Father` 的 `prototype` 理解成为一个仓库，当 `father` 对象需要某些属性而自身也没有的时候，就会通过自己的 `__proto__` 上去寻找 也就是去 `Father` 的 `prototype` 中寻找，如果也没有找到就会去 `Object.protitype` 上寻找，因为 `Father.prototype` 本身也是一个对象，而它是通过 `Object` 构造函数创建的，所以 `Father.prototype.__proto__` 就是 `Object.prototype`，同理 `Object.prototype.__proto__` 就是 `null`,就这样一层层寻找形成的链路就叫原型链，最终找不到就会返回 `null`
+
+```script
+    console.log(father.__proto__ === Father.prototype);// true
+    console.log(Father.prototype.__proto__ === Object.prototype);// true
+    console.log(Object.prototype.__proto__ === null);// true
+```
+    
+
+
 
 ##  this
 

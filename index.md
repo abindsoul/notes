@@ -6,6 +6,8 @@ hero:
   name: "My Web Note"
   text: "Record learning"
   tagline: 深自缄默 如云漂泊
+  image:
+    src: /public/image/02.png
   actions:
     - theme: brand
       text:  Study Now
@@ -16,11 +18,25 @@ hero:
       logo: https://vitepress.dev/assets/vitepress-logo-dark.svg
 
 features:
-  - title: 你
+  - icon : 👇
+    title: 你
     details: now
-  - title: 渴望
+  - icon : 😍
+    title: 渴望
     details: to click
-  - title: 力量吗
+  - icon : 💪
+    title: 力量吗
     details: the blue button
 ---
 
+---
+
+You know
+
+🙌 没有人 👐 比我 👌 更懂 ☝️ 白嫖
+
+你可以在这个网站里学到
+
+一个 🔨
+
+---
