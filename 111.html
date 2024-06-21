@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <button class="btn">点我起飞</button>
+    <div id="progress"></div>
+    <script>
+        const btn =document.querySelector('.btn');
+        const progress =document.querySelector('#progress');
+
+        // ajax 请求
+        // 1.先创建实例
+        // const xhr = new XMLHttpRequest();
+
+        // // 可以设置超时时间
+        // // xhr.timeout = 1000 // 单位毫秒
+
+        // // 2.设置参数
+        // // open方法写明要访问的 方法 地址 第三个参数是同步或者异步（默认异步一般不写第三个参数）
+        // xhr.open('GET','http://localhost:3000/txt')
+
+        // // 超时的回调
+        // xhr.ontimeout= function(){
+        //     console.log('请求超时');
+        // }
+
+        // // 接收返回值的方法
+        // // onreadystatechange 有 0 1 2 3 4 种状态 一般会用 4 
+        // // 0-（未初始化） 还没调用 send方法
+        // // 1-（载入） 已经调用 send方法，正在发送请求
+        // // 2-（载入完成） 已经接收到全部响应内容
+        // // 3-（交互） 正在解析响应内容
+        // // 4-（完成） 响应内容解析完成，可以在客户端调用了
+
+        // // xhr.onreadystatechange=function(){
+        // //     // 这两合适了就代表成功了
+        // //     if(xhr.readyState === 4 && xhr.status === 200){
+        // //         // 因为我这里后端写的接口返回的是文本内容所以直接用 如果后端返回是其他格式记得手动处理
+        // //         // console.log(xhr.responseText); // 打印返回的结果
+        // //     }
+        // // }
+
+        // // onload 和 onreadystatechange 选一个就行了
+        // // onload 直接到 4 再判断一下状态码就行了  （用的多）
+
+        // xhr.onload=function(){
+        //     if(xhr.status === 200){
+        //         // console.log(xhr.responseText);
+        //     }
+        // }
+
+        // // 请求失败的回调
+        // xhr,onerror=function(){
+        //     console.log('请求失败了');
+        
+        // }
+        // // 中断请求的回调
+        // xhr.onabort=function(){
+        //     console.log('请求被中断了');
+        // }
+
+        // // 监听进度 可以拿来做进度条
+        // xhr.onprogress=function(e){
+        //     // e.total 当前进度 e.loaded 总进度
+        //     progress.innerText = (e.loaded / e.total * 100 ).toFixed(2)+ '%'; //保留两位小数
+        // }
+
+
+        // // 3.给后端响应 到这里就一个请求就结束了
+        // xhr.send(null);
+        
+        
+        // fetch
+        // fetch('http://localhost:3000/txt')
+        // .then(async res=>{
+        //     // 先克隆一份流 补下面的坑
+        //     const response = res.clone()
+        //     // 获取文件总大小 在响应头里能看到
+        //     const contentLength = res.headers.get('content-length')
+        //     //响应体的流
+        //     const reader = res.body.getReader()
+        //     //  用来表示已加载了多少
+        //     let current = 0
+        //     while(true){
+        //         // 读取流
+        //         // await 后面跟的是一个 promise 对象
+        //         // 这里返回的是一个对象 对象里有一个 done 属性 表示是否读取完毕
+        //         // 还有一个 value 属性 表示读取到的内容
+        //         const {done,value} = await reader.read()
+        //         // 不断累积起来 效果就是xhr.onprogress 里的 e.loaded
+        //         current += value.length
+        //         // 这里可以写进度条的逻辑
+        //         progress.innerText = (current / contentLength * 100).toFixed(2)+'%';
+        //         if(done){ // 当文件已经加载完毕后这个 done 的值就会变成 true 这样就跳出 while循环
+        //             break;
+        //         }
+        //     }
+
+        //     return response.text() //这里把克隆的流 return给下一个 .then 就解决了
+        // }) //这里有一个坑 就是这个流如果被使用了 那么下面的 .then就无法拿到返回的结果了 所以在上面储存一份
+        // .then(res=>console.log(res)) 
+
+
+        // sse
+        // const sse = new EventSource('http://localhost:3000/sse');
+        // //message是默认写法 后端可以修改 修改后双方都要一致不然无效
+        // sse.addEventListener('message',(e)=>{
+        //     progress.innerText = e.data
+        // })
+
+        // websocket
+        const ws = new WebSocket('ws://localhost:3000'); // 核心！ 连接服务上面创建的 ws 服务 不是 
+        
+        ws.addEventListener('message',(e)=>{
+            console.log(e.data);
+        })
+
+        btn.addEventListener('click',()=>{
+            // 中断ajax请求
+            // xhr.abort(); //是的你没看错一行搞定
+
+            // ws 给后端发送数据
+            ws.send('我是前端来的')
+
+        })
+    </script>
+</body>
+</html>

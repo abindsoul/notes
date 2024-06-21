@@ -53,7 +53,14 @@ export default defineConfig({
           { text: '进阶', link: '/node-md/progress.md'}
 
         ]
-      }
+      },
+      {
+        text: '网络请求',
+        items: [
+          { text: '基础', link: '/network-md/basis.md' },
+        ]
+      },
+      
     ],
     // 页脚的翻页功能
     docFooter: {

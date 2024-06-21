@@ -52,7 +52,7 @@ let 与 const 有独立块级作用域
 - 判断其中一方是否是Boolean，是的话就把Boolean转换成Number，再进行比较
 - 如果其中一方为Object，且另一方为String、Number或者Symbol，会将Object转换成字符串，再进行比较,例：
 
-```script
+```js
     console.log({a: 1} == true);//false
     console.log({a: 1} == "[object Object]");//true
 ```

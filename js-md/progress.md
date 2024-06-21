@@ -24,7 +24,7 @@
 
     Catch 语句也会生成一个特殊的作用域，Catch Block 作用域，特点是能访问错误对象
 
-    ```script
+    ```js
     try{
         throw new Error("gg");
     } catch(err){
@@ -42,7 +42,7 @@
 
     eval 的代码里声明的变量都在Eval这个作用域里
 
-    ```script
+    ```js
     function foo(str, a) { 
     eval( str ); // 欺骗！ 
     console.log( a, b ); 
@@ -63,7 +63,7 @@ MDN 对闭包的定义为：闭包是指那些能够访问自由变量的函数
 
 说白了就是我可以在一个函数访问到另一个函数的变量
 
-```script
+```js
     var a = 1;
     function foo(){
         var a = 2;
@@ -78,13 +78,15 @@ MDN 对闭包的定义为：闭包是指那些能够访问自由变量的函数
     foo(); // 输出2，而不是1
 ```
 
+闭包会造成内存泄漏的问题，可以通过手动给闭包变量赋值 `null` 来解决
+
 ### 防抖与节流
 
 - 防抖：
     
     设置一个时间，触发函数时会开始计时，如果在时间还未结束时再次触发了函数那么就会清除上一次的时间并重新开始计时，参考 王者荣耀回城
     
-    ```script
+    ```js
     function debounce(func, wait) {
     let timeout;
         return function() {
@@ -102,7 +104,7 @@ MDN 对闭包的定义为：闭包是指那些能够访问自由变量的函数
     
     设置一个时间,触发函数时开始计时，一但进入计时阶段函授就无法再次触发直到计时结束,参考 王者荣耀英雄技能冷却
 
-    ```script
+    ```js
     function throttle(func, wait) {
         let timeout;
         return function() {
@@ -133,7 +135,7 @@ MDN 对闭包的定义为：闭包是指那些能够访问自由变量的函数
 
 看下面例子
 
-```script
+```js
 // 一个普通函数
 function Father(){
 
@@ -169,7 +171,7 @@ let father = new Father();
 
 你可以把 `Father` 的 `prototype` 理解成为一个仓库，当 `father` 对象需要某些属性而自身也没有的时候，就会通过自己的 `__proto__` 上去寻找 也就是去 `Father` 的 `prototype` 中寻找，如果也没有找到就会去 `Object.protitype` 上寻找，因为 `Father.prototype` 本身也是一个对象，而它是通过 `Object` 构造函数创建的，所以 `Father.prototype.__proto__` 就是 `Object.prototype`，同理 `Object.prototype.__proto__` 就是 `null`,就这样一层层寻找形成的链路就叫原型链，最终找不到就会返回 `null`
 
-```script
+```js
     console.log(father.__proto__ === Father.prototype);// true
     console.log(Father.prototype.__proto__ === Object.prototype);// true
     console.log(Object.prototype.__proto__ === null);// true

@@ -1,4 +1,361 @@
-# Node 个人认为的进阶
+# Node 进阶
 
 ## 大文件上传
 
+### 切片上传 （带 node 后端）
+
+将大文件切成较小的片段（通常分为片或块），然后逐个上传这些分片。
+这种方法可以提高上传的稳定性，因为如果某个分片上传失败，
+只需要重新上传该分片而不需要重新上传整个文件。同时，分片上传还可以利用多个网络连接并行上传多个分片，提高上传速度
+
+一. 随便找个地方创建一个文件夹使用 npm init 进行初始化 得到 package.json 文件
+
+```
+npm init
+
+运行后会有以下选项：
+package name:   你的项目名字叫啥
+version:        版本号
+description:    对项目的描述（可空）
+entry point:    项目的入口文件（一般你要用那个js文件作为node服务，就填写那个文件）
+test command:   项目启动的时候要用什么命令来执行脚本文件（默认为node app.js）
+git repository: 如果你要将项目上传到git中的话，那么就需要填写git的仓库地址（可空）
+keywirds：      项目关键字（可空）
+author:         作者的名字（随你）
+license:        发行项目需要的证书（可空）
+
+```
+
+再安装以下模块
+
+```
+npm i express   // express框架
+npm i multer    // 处理上传文件
+npm i cors      // 跨域
+```
+二. 创建一个 index.html 名字随意
+
+```html
+<!-- 用来上传的input -->
+<input type="file" id="file"> 
+
+```
+
+以下内容都写在一个 `<script>` 里
+
+1. 获取 dom 元素
+
+```js
+// 获取dom元素
+const fileInput = document.getElementById('file');
+```
+2. 创建切割文件函数 chunksFun  ！！！核心file.slice进行切割
+
+```js
+  const chunksFun = (file,size=1024*1024*1)=>{ // size设置每次切的大小
+            const chunks = [] // 存放切割后的文件是个数组 如 1-2mb 2-3mb 3-4mb 依次存放
+            // file.slice进行切割 再循环加到上面数组里去
+            for(let i=0;i<file.size;i += size){
+                chunks.push(file.slice(i,i+size))
+            }
+            return chunks // 一定要返回切割后的文件
+        }
+```
+
+3. 上传后端的函数 uploadFiles
+
+```js
+const uploadFiles = (chunks)=>{
+    // 因为上传的碎片多所以 要使用 promise.all 
+    // 写一个数组来包裹所有请求 [请求,请求,请求,请求]
+    const list = [];
+    // 使用循环处理每一个碎片
+    for(let i = 0;i < chunks.length;i++){
+        // 这里比较重要 要使用 FormDate实例对象的append方法来添加数据
+        const formdata = new FormData();
+        // 为了区分文件还要添加 index 或者 hash 这里用 index
+        formData.append('index',i) // i就是循环的i当做值直接用给index
+        // 文件名字
+        formData.append('filename','nb') // 第一个值要和后端一致 第二个自己随便
+        // 文件碎片 这个必须写在上面两个之后否者后端可能无法读取文件名称导致报错
+        formData.append('file',chunks[i])
+        // 添加请求到数组里
+        list.push(
+            fetch('http://localhost:3000/upload',{ // 接口稍后会写 或者写你自己的
+                method:'post',
+                body:formData
+            })
+        )
+    }
+    // 使用 promise.all 处理所有请求 
+    Promise.all(list).then(res=>{
+        // 当所有请求成功后才会触发
+        // 这里可以写上传成功后的逻辑
+        console.log('上传成功');
+        // 上传完毕后还要通知后端合并文件
+        fetch('http://localhost:3000/merge',{ // 接口后面也会写
+            method:'POST'，
+            headers:{ // 请求头
+                'Content-Type':'application/json'
+            },
+            body:JSON.stringify({
+                filename:'nb' // 文件名和上面对应哦 不然后端检索时找不到
+            })
+        })
+    }).catch(err=>{
+        // 这里可以写上传失败后的逻辑
+        console.log(err);
+    })
+}
+```
+
+4. 监听change事件 当input选好文件后触发
+
+```js
+file.addEventListener('change',(e)=>{
+    // 这里是单个文件上传 所以取 0
+    let file = e.target.files[0];
+    // 调用切割函数来 切割文件
+    let chunks = chunksFun(file);
+    // 调用上传函数
+    uploadFiles(chunks)
+})
+```
+
+启动这个页面时不要使用vscode的live server, 安装 npm install http-server -g ,用 http-serve启动 如 http-server -p 9999(这里9999是端口号)
+
+到这里前端的事就做完了，下面来实现后端
+
+三. 后端实现
+
+都在当前同级目录创建
+
+创建一个 app.js 文件
+
+创建一个 uploads 文件夹 用来存放切片
+
+创建一个 video 文件夹 存放合并后的文件（随便你起名字这里用视频做实验所以用video，看你个人）
+
+下面开始编写 app.js 文件
+
+1. 引入要用到的库
+
+```js
+import express from "express";// express框架
+import multer from "multer"; // 处理上传文件
+import cors from "cors"; // 解决跨域
+import fs from 'node:fs';// 文件操作
+import path from 'node:path'; // 路径操作
+
+// 如果遇到 import 语法错误无法使用 请在 package.json 在 "main" 选项下方 添加 "type":"module" 解决该问题
+
+```
+
+2. 初始化 multer
+
+```js
+const storage = multer.diskStorage({
+    // 设置上传的文件存储位置
+    destination:function(req,file,cb){
+        cb(null,'uploads/')// 第一个参数是错误对象 null 就是没有 后面是文件夹路径
+    },
+    // 文件名
+    filename(req.file,cb){
+        // 设置切片文件索引和名字
+        cb(null,`${req.body.index}-${req.body.filename}`)
+    }
+})
+const upload = multer({storage})
+```
+
+3. 创建服务端以及接口路由
+
+```js
+// 创建服务端
+const app = express();
+
+// 设置跨域
+app.use(cors());
+app.use(express.json())
+
+// 上传接口  这里 'file' 要和上传时对应上
+app.post('/upload',upload.single('file'),(req,res)=>{
+    res.send('ojbk')
+})
+
+// 合并接口
+app.post('/merge',(req,res)=>{
+    // 1. 读取文件
+    const uploadDir = path.join(process.cwd(),'uploads')
+    // 2.获取所有的切片  返回值是个数组 但顺序是乱的 所以要排序
+    const dirs= fs.readdirSync(uploadDir)
+    // 排序 因为上传时切片名字 是 1-nb 2-nb 3-nb 所以用 -分割取前面的数字来排序
+    dirs.sort((a,b)=>a.split('-')[0]-b.split('-')[0])
+    // 3. 写入合并文件
+    const video = path.join(process.cwd(),'video',`${req.body.filename}.mp3`)
+    // 4. fs.appendFileSync 合并文件
+    dirs.forEach((item)=>{
+        fs.appendFileSync(video,fs.readFileSync(path.join(uploadDir,item)))
+        fs.unlinkSync(path.join(uploadDir,item))//合并完后删除切片文件夹里的内容
+    })
+    res.send('合并成功')
+})
+app.listen(3000,()=>{
+    console.log('服务器启动成功 http://localhost:3000')
+})
+```
+
+到这里就结束了,可以试着上传文件试试了
+
+
+## HTTP 缓存
+
+### 缓存分类
+
+- 强缓存
+- 协商缓存
+
+### 强缓存
+
+- 强缓存是浏览器直接从本地缓存中获取资源，不会向服务器发送请求
+- 强缓存可以通过设置两种 HTTP Header 实现
+  - Expires
+  - Cache-Control
+
+在本地缓存中又分为(小拓展)：
+
+- 内存缓存 (memory cache) 一般在浏览器内存中,一般刷新网页时会发现很多内存缓存,关闭网页后就会释放
+- 硬盘缓存 (disk cache) 在计算机硬盘中 空间大 但读取效率比内存慢
+
+静态资源缓存：
+
+```js
+// 如 css js png html 等静态的资源 可以直接用 express.static
+app.use(express.static('你的静态资源目录'),{
+    maxAge:1000*60*60*24*7 // 设置缓存时间 单位是毫秒 这里设置的是7天 默认是强缓存
+    // 也可以在下面配置成协商缓存
+    lastModified:true, // 设置协商缓存 
+})
+```
+
+#### Expires （不推荐）
+
+- Expires 是 HTTP1.0 时的规范，指响应的到期时间,即资源不再被视为有效的日期和时间
+
+判断机制：当客户端请求资源时，会获取本地时间戳，然后将本地时间戳与 expires 设置的时间进行比较，对比成功后就会走强缓存，对比失效，就会对服务器发起请求
+
+```js
+// 动态资源缓存 接口
+// Expires 强缓存
+app.get('/api',(req,res)=>{
+    // seHeader 设置响应头  后面时间 用toUTCString() 转成 UTC格式即可
+    res.setHeader('Expires',new Date('2024-6-xx-xx:xx:xx').toUTCString()
+    res.send('ojbk了去调试看看')
+})
+// 第一次请求会经过服务器 
+// 第二次开始 只要在设置的时间内请求 就可以在Network（网络）页查看请求的 Size 选项有 disk cache 字样
+// 如果无效注意关闭 调试工具上面的 停用缓存 (Disable cache)的选项
+```
+
+#### Cache-Control (推荐)
+
+- Cache-Control 是 HTTP1.1 时的规范，优先级比 Expires 高
+- Cache-Control 表示资源会在什么时间内过期，需要和服务器时间配合使用
+
+Cache-Control 的值有:
+- `max-age` 浏览器资源缓存的时间(秒)
+- ` no-cache` 不走强缓存，走协商缓存
+- `no-store` 禁止任何缓存策略
+- `public` 资源可以被浏览器缓存也可以被代理服务器缓存（CDN）
+- `private` 资源只能被客户端缓存
+
+```js
+// Expires Cache-Control 同时出现时 Cache-Control 的 max-age 优先级更高
+app.get('/api2',(req,res)=>{
+    // seHeader 设置响应头 max-age 缓存时间 (单位：秒)
+    res.setHeader('Cache-Control','public,max-age=60')
+    res.send('Cache-Control设置ojbk了去调试看看')
+})
+```
+
+### 协商缓存
+
+在缓存机制里，强缓存优先于协商缓存。当强缓存资源生效时，客户端不会向服务器发送请求，而是直接使用本地缓存。
+
+协商缓存是强缓存失效后如(max-age过期)或者服务器响应中设置了(Cache-Control:no-cache)，客户端就会向服务器发起协商缓存的请求。
+再协商缓存中，客户端会发送带有缓存数据标识的请求头部字段，以向服务器验证资源的有效性。
+
+以下两种都是：
+- Last-Modified
+- Etag
+
+他们都是需要配套使用的
+
+#### Last-Modified (最后修改时间判断)
+
+Last-Modified 表示资源最后被修改的时间,配合 if-modified-since 使用，第一次请求时不会携带 if-modified-since 字段，服务器会返回资源，并在响应头中设置 Last-Modified 字段，表示资源最后被修改的时间。
+
+第二次请求时，浏览器会携带 if-modified-since 字段，表示上一次请求的资源最后被修改的时间。服务器会根据 if-modified-since 字段判断资源是否发生变化，如果资源未发生变化，服务器会返回状态码 304 （Not Modified），通知客户端可以使用缓存的版本。如果资源已经发生变化，服务器将返回最新的资源，状态码为200。
+
+只要文件没有变化就会一直用缓存的文件
+
+```js
+// 因为强缓存优先于协商缓存同时出现时要使用协商缓存如何解决
+// 两种方法 no-cache（推荐） 或者 no-store 它们是互斥的
+// 设置 Last-Modified 文件最后的修改时间
+const getFileModifyTime = ()=>{
+    // statSync 选好文件 mtime读取文件的修改时间  toUTCString转换时间格式
+    return fs.statSync('./index.js').mtime.toUTCString()
+}
+app.get('/api3',(req,res)=>{
+    // seHeader 设置响应头 max-age 缓存时间 (单位：秒)
+    res.setHeader('Cache-Control','no-cache') //不走强缓存
+    const ifModifiedSine = req.headers['if-modified-since'] //获取浏览器发来的资源的修改时间
+    const modifyTime = getFileModifyTime() //调用一下获得时间
+    // 对比判断文件时间是否变化了
+    if(ifModifiedSine === modifyTime){ //时间上没有变化就执行
+        console.log('缓存了');
+        res.statusCode=304 // 设置状态码为304
+        res.end() // 停止
+        return
+    }
+    // 时间变化了
+    console.log('没有缓存');
+    res.setHeader('Last-Modified',modifyTime)
+    res.send('协商缓存已设置')
+})
+```
+
+#### Etag （文件标识判断）
+
+Etag 表示资源在服务器的唯一标识，配合 if-none-match 使用。
+
+其实和上面的原理一样，但是他是对文件生成 Hash 标识，当文件变化后 Hash 也会变化，这样对比客户端和服务器该资源的 Hash 是否一致来判断是否使用缓存的文件
+
+*ETag 优先级比 Last-Modified 高*
+
+```js
+import crypto from 'node:crypto' //这个模块记得引入
+
+// 给 index.js 文件生成一个 Hash 的方法
+const getFileHash = () => {
+    return crypto.createHash('sha256').update(fs.readFileSync('index.js')).digest('hex')
+}
+// 接口
+app.get('/api4', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, max-age=2592000')//表示走协商缓存
+    const etag = getFileHash() // 获得标识
+    const ifNoneMatch = req.headers['if-none-match'] //获得客户端发来的标识
+    if(ifNoneMatch === etag) {
+        console.log('Etag缓存了');
+        res.sendStatus(304)
+        return
+    }
+    console.log('Etag没有缓存');
+    res.setHeader('ETag', etag)
+    res.send('Etag')
+    
+})
+```
+
+只要文件没有变化就会一直用缓存的文件

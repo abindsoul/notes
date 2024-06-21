@@ -1,0 +1,5 @@
+{
+    "Codegeex.CompletionDelay": 1,
+    "Codegeex.CompletionModel": "CodeGeeX Pro[Beta]",
+    "Codegeex.GenerationPreference": "line by line"
+}
