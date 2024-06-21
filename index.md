@@ -7,7 +7,7 @@ hero:
   text: "Record learning"
   tagline: 深自缄默 如云漂泊
   image:
-    src: /public/image/02.png
+    src: /image/02.png
   actions:
     - theme: brand
       text:  Study Now

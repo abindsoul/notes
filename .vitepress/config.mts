@@ -9,8 +9,8 @@ export default defineConfig({
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     logo: {
-      light:'/public/image/logo.png',
-      dark: '/public/image/logo_hover.png'
+      light:'/image/logo.png',
+      dark: '/image/logo_hover.png'
     }
     ,
     nav: [
