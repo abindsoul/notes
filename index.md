@@ -29,14 +29,13 @@ features:
     details: the blue button
 ---
 
+<br>
+
 ---
+<br>
+<br>
 
-You know
-
-🙌 没有人 👐 比我 👌 更懂 ☝️ 白嫖
-
-你可以在这个网站里学到
-
-一个 🔨
+<center>迈向光明之路，必将荆棘丛生，你的努力定不会辜负你的</center>
+<p align="right">——<a href="https://github.com/message163" _target="_blank" style="text-decoration: none;">小满zs</a></p>
 
 ---

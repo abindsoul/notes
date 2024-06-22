@@ -49,6 +49,15 @@ npm i cors      // 跨域
 // 获取dom元素
 const fileInput = document.getElementById('file');
 ```
+
+核心是使用 Blob 对象的 `slice` 方法,你通过 `<input>` 选中的文件就会成为一个二进制类型的大对象，通常是影像、声音或多媒体文件，通过 slice 方法将他切片存放在一个数组中，再利用循环将每个切片发送到后端就可以了，当然上传完毕后还要通过后端给定的接口将切片文件进行合并，这个就放在所有的请求结束后再发起单独的请求就可以了。
+
+```js
+// start 开始的字节的索引 end 结束的字节索引 contentType赋予一个新的内容类型
+slice(start, end, contentType)
+ // 返回值是一个新的Blob对象，包含了源Blob对象中指定范围内的数据。
+```
+
 2. 创建切割文件函数 chunksFun  ！！！核心file.slice进行切割
 
 ```js
@@ -63,6 +72,8 @@ const fileInput = document.getElementById('file');
 ```
 
 3. 上传后端的函数 uploadFiles
+
+核心在于 `FormData.append()` 方法，向 FormData 中添加新的属性值，FormData 对应的属性值存在也不会覆盖原值，而是新增一个值，如果属性不存在则新增一项属性值
 
 ```js
 const uploadFiles = (chunks)=>{
@@ -110,6 +121,7 @@ const uploadFiles = (chunks)=>{
 ```
 
 4. 监听change事件 当input选好文件后触发
+
 
 ```js
 file.addEventListener('change',(e)=>{
@@ -293,7 +305,7 @@ app.get('/api2',(req,res)=>{
 
 #### Last-Modified (最后修改时间判断)
 
-Last-Modified 表示资源最后被修改的时间,配合 if-modified-since 使用，第一次请求时不会携带 if-modified-since 字段，服务器会返回资源，并在响应头中设置 Last-Modified 字段，表示资源最后被修改的时间。
+`Last-Modified` 表示资源最后被修改的时间,配合 `if-modified-since` 使用，第一次请求时不会携带 if-modified-since 字段，服务器会返回资源，并在响应头中设置 Last-Modified 字段，表示资源最后被修改的时间。
 
 第二次请求时，浏览器会携带 if-modified-since 字段，表示上一次请求的资源最后被修改的时间。服务器会根据 if-modified-since 字段判断资源是否发生变化，如果资源未发生变化，服务器会返回状态码 304 （Not Modified），通知客户端可以使用缓存的版本。如果资源已经发生变化，服务器将返回最新的资源，状态码为200。
 
@@ -328,9 +340,9 @@ app.get('/api3',(req,res)=>{
 
 #### Etag （文件标识判断）
 
-Etag 表示资源在服务器的唯一标识，配合 if-none-match 使用。
+Etag 表示资源在服务器的唯一标识,服务器在第一次请求时会返回一个 etag 字段，配合 `if-none-match` 使用，和上面一样第二次请求就会携带然后去验证。
 
-其实和上面的原理一样，但是他是对文件生成 Hash 标识，当文件变化后 Hash 也会变化，这样对比客户端和服务器该资源的 Hash 是否一致来判断是否使用缓存的文件
+原理同上，但是他是对文件生成 Hash 标识，当文件变化后 Hash 也会变化，这样对比客户端和服务器该资源的 Hash 是否一致来判断是否使用缓存的文件
 
 *ETag 优先级比 Last-Modified 高*
 

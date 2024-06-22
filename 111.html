@@ -113,20 +113,75 @@
         // })
 
         // websocket
-        const ws = new WebSocket('ws://localhost:3000'); // 核心！ 连接服务上面创建的 ws 服务 不是 
+        // const ws = new WebSocket('ws://localhost:3000'); // 核心！ 连接服务上面创建的 ws 服务 不是 
         
-        ws.addEventListener('message',(e)=>{
-            console.log(e.data);
-        })
+        // ws.addEventListener('message',(e)=>{
+        //     console.log(e.data);
+        // })
 
-        btn.addEventListener('click',()=>{
-            // 中断ajax请求
-            // xhr.abort(); //是的你没看错一行搞定
+        // btn.addEventListener('click',()=>{
+        //     // 中断ajax请求
+        //     // xhr.abort(); //是的你没看错一行搞定
 
-            // ws 给后端发送数据
-            ws.send('我是前端来的')
+        //     // ws 给后端发送数据
+        //     ws.send('我是前端来的')
 
-        })
+        // })
     </script>
+    <!-- <script>
+        const arr = [1,2,3]
+        console.log(Object.prototype.toString.call(arr));
+        console.log(arr instanceof Array);
+        console.log(arr.__proto__ === Array.prototype);
+        console.log(Array.isArray(arr));
+        console.log(arr.constructor === Array);
+        console.log(Array.prototype.isPrototypeOf(arr));
+        console.log(Object.getPrototypeOf(arr) === Array.prototype);
+    </script> -->
+
+    <script>
+        // console.log('a的值为',a)  // undefined
+        // // console.log('a2的值为',a2) // Cannot access 'a2'
+        // var a = 666;
+        // let a2 =555;
+        // function nb (){
+        //     console.log('函数内的b值为:',b)
+        //     var b = 777; // 函数内部变量提升，只提升声明，不提升赋值，所以b的值为undefined
+        //     // console.log('函数内的c值为:',c)// Cannot access 'c'
+        //     let c = 888; // let const 没有变量提升
+        // }
+        // // console.log('函数外b的值为',b)// b is not defined 这是正常情况
+        // nb() // 在函数内部的 var 变量 无论在调用前还是后都是无法网访问的
+        // // console.log('函数外b的值为',b)// b is not defined 这是正常情况
+
+        // function nb (){
+        //     var q = w = 999;
+        // }
+        // // console.log(q);// q is not defined
+        // console.log(window.q); // undefined
+        // // console.log(w);// w is not defined
+        // console.log(window.w);
+        // nb()
+        // // console.log(q);// q is not defined
+        // console.log(window.q); // undefined
+        // console.log(w);// 999 
+        // console.log(window.w);// 999
+
+        let nb = '我是天才';
+        function first(){
+            console.log('第一个函数执行了');
+            seconnd();
+            console.log('天才是假的');
+        }
+        function seconnd(){
+            console.log('第二个函数执行了');            
+        }
+        first();
+        console.log('天才如是说');
+    </script>
+   
+
+
+
 </body>
 </html>
