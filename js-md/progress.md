@@ -590,7 +590,7 @@ app.use(express.static(__dirname))
 app.listen(4000)
 ```
 
-上述代码由 http://localhost:3000/index.html 向 http://localhost:4000/ 跨域请求，正如我们上面所说的，后端是实现 CORS 通信的关键。
+上述代码由 `http://localhost:3000/index.html` 向 `http://localhost:4000/` 跨域请求，正如我们上面所说的，后端是实现 CORS 通信的关键。
 
 
 ##  Promise
@@ -810,3 +810,4 @@ generator可以分段执行，可以暂停可以控制每个阶段的返回值
 但是写法复杂
 
 所以generator函数的意义就是为了打造async，await
+
