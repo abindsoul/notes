@@ -179,6 +179,99 @@ console.log('天才如是说');
 // 天才如是说
 ```
 
+
+
+
+##  异步和单线程
+
+### 单线程
+
+js是单线程的，也就是说同一时间只能执行一个任务，不能同时执行多个任务，但是可以通过异步来模拟多线程的效果，比如使用 `setTimeout` 或者 `Promise` 来实现异步操作，从而达到多线程的效果。
+
+顺序：
+
+同步代码 > nextTick > 异步 > setImmediate
+
+### 同步代码
+
+同步代码指的是在执行过程中，如果当前任务没有完成，那么后续的任务将无法执行，直到当前任务完成。同步代码的执行顺序是按照代码的顺序依次执行的。
+
+### 异步代码
+
+异步代码指的是在执行过程中，当前任务不会阻塞后续任务的执行，而是通过回调函数或者事件来通知后续任务的执行。异步代码的执行顺序是不确定的，因为它的执行是依赖于事件或者回调函数的触发。
+
+#### 宏任务与微任务
+
+在异步代码中会有宏任务微任务之分，它们是有优先级的
+
+新的文件本事就是执行一个宏任务 > 微任务（当前宏任务里的所有微任务执行完毕) >（浏览器可能会渲染） > 新的宏任务 > 新的微任务 > 新的宏任务...
+
+宏任务：
+
+- `script` 标签
+- `setTimeout` 定时器
+- `setInterval` 定时器
+- `I/O` 操作（如读取文件）
+- `UI` 交互事件（如点击事件)
+- `setImmediate`（浏览器环境）(特殊)（当前事件循环结束后执行）
+
+
+微任务：
+
+- `process.nextTick`（Node.js 环境）（特殊）（在同步之后异步之前执行）
+- `Promise` 的 `then` `catch` `finally` 方法 (注意不是 Promise 本身)
+- `MutationObserver`（浏览器环境）（监视对DOM树所做更改，指定的DOM发生变化时被调用）
+- `Object.boserve` （实时监测js中对象的变化）
+
+特殊：
+
+- `requestIdleCallback` （浏览器环境）（浏览器空闲的时候调用）
+- `queueMicrotask`（浏览器环境）(可将函数转成微任务)
+- `requestAnimationFrame`（浏览器环境）（回调会在每一帧确认执行）
+
+##  事件循环
+
+三个东西：
+
+- 运行栈
+- 任务队列
+- 事件循环（Eventloop）
+
+同步代码在运行栈依次执行，遇到异步代码就会放入任务队列中等待，当运行栈为空时，事件循环会从任务队列中取出一个宏任务执行，执行完毕后，会检查是否有微任务，如果有，会依次执行微任务，执行完毕后，再从任务队列中取出下一个宏任务执行，以此类推，直到任务队列为空。
+
+以下代码请在 node 环境运行
+
+```js
+setImmediate(()=>{
+    console.log(1)
+})
+process.nextTick(()=>{
+    console.log(2)
+})
+console.log(3)
+setTimeout(()=>{console.log(4)},0)
+setTimeout(()=>{console.log(5)},1000)
+setTimeout(()=>{console.log(6)},0)
+console.log(7)
+// 输出顺序 3 > 7 > 2 > 4 > 6 > 1 > 5
+````
+
+小满顺口溜：
+
+同步异步 先同步
+
+异步任务 分微宏
+
+优先执行 宏任务 (执行script程序本身就是一个宏任务)
+
+宏任务内 微任务
+
+清空宏内 微任务
+
+开始下个 宏任务
+
+
+
 ## 作用域和闭包
 
 ### 作用域
@@ -357,88 +450,363 @@ let father = new Father();
 ```
 
 
-##  异步和单线程
-
-### 单线程
-
-js是单线程的，也就是说同一时间只能执行一个任务，不能同时执行多个任务，但是可以通过异步来模拟多线程的效果，比如使用 `setTimeout` 或者 `Promise` 来实现异步操作，从而达到多线程的效果。
-
-顺序：
-
-同步代码 > nextTick > 异步 > setImmediate
-
-### 同步代码
-
-同步代码指的是在执行过程中，如果当前任务没有完成，那么后续的任务将无法执行，直到当前任务完成。同步代码的执行顺序是按照代码的顺序依次执行的。
-
-### 异步代码
-
-异步代码指的是在执行过程中，当前任务不会阻塞后续任务的执行，而是通过回调函数或者事件来通知后续任务的执行。异步代码的执行顺序是不确定的，因为它的执行是依赖于事件或者回调函数的触发。
-
-#### 宏任务与微任务
-
-在异步代码中会有宏任务微任务之分，它们是有优先级的
-
-微任务 > 宏任务  
-
-宏任务：
-
-- `script` 标签
-- `setTimeout` 定时器
-- `setInterval` 定时器
-- `I/O` 操作（如读取文件）
-- `UI` 交互事件（如点击事件)
-
-
-微任务：
-
-- `process.nextTick`（Node.js 环境）（特殊）（在同步之后异步之前执行）
-- `Promise` 的 `then` `catch` `finally` 方法 (注意不是 Promise 本身)
-- `MutationObserver`（浏览器环境）（监视对DOM树所做更改，指定的DOM发生变化时被调用）
-
-
-特殊：
-
-- `setImmediate`（浏览器环境）(特殊)（当前事件循环结束后执行）
-- `requestAnimationFrame`（浏览器环境）（存疑）
-- `requestIdleCallback` （浏览器环境）（存疑）
-- `queueMicrotask`（浏览器环境）(可将函数转成微任务)
-
-##  事件循环
-
-三个东西：
-
-- 运行栈
-- 任务队列
-- 事件循环（Eventloop）
-
-同步代码在运行栈依次执行，遇到异步代码就会放入任务队列中等待，当运行栈为空时，事件循环会从任务队列中取出一个宏任务执行，执行完毕后，会检查是否有微任务，如果有，会依次执行微任务，执行完毕后，再从任务队列中取出下一个宏任务执行，以此类推，直到任务队列为空。
-
-以下代码请在 node 环境运行
-
-```js
-setImmediate(()=>{
-    console.log(1)
-})
-process.nextTick(()=>{
-    console.log(2)
-})
-console.log(3)
-setTimeout(()=>{console.log(4)},0)
-setTimeout(()=>{console.log(5)},1000)
-setTimeout(()=>{console.log(6)},0)
-console.log(7)
-// 输出顺序 3 > 7 > 2 > 4 > 6 > 1 > 5
-````
-
 
 ##  跨域和预检请求
 
-##  模块化
+### 跨域
+
+突破同源策略（  同源策略是一种约定，由Netscape公司1995年引入浏览器，它是浏览器最核心也最基本的安全功能，如果缺少了同源策略，浏览器很容易受到XSS、CSFR等攻击。所谓同源是指"协议+域名+端口"三者相同，即便两个不同的域名指向同一个ip地址，也非同源。）
+
+如：
+
+同一域名，不同文件或路径是 允许
+
+同一域名，不同端口 不允许
+
+同一域名，不同协议	不允许
+
+域名和域名对应相同ip	不允许
+
+主域相同，子域不同	不允许
+
+不同域名	不允许
+
+
+
+#### 解决方法
+
+- JSONP 利用 `<script>`标签的 `src` 属性没有跨域限制  
+    缺点：只能发送GET请求
+    1. JS实现
+    ```js
+    <script>
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+
+        // 传参一个回调函数名给后端，方便后端返回时执行这个在前端定义的回调函数
+        script.src = 'http://www.domain2.com:8080/login?user=admin&callback=handleCallback';
+        document.head.appendChild(script);
+
+        // 回调执行函数
+        function handleCallback(res) {
+            alert(JSON.stringify(res));
+        }
+    </script>
+
+    ```
+
+- CORS 需要后端设置（下面为node端）
+
+浏览器会自动进行 CORS 通信，实现 CORS 通信的关键是后端。只要后端实现了 CORS，就实现了跨域。
+服务端设置 Access-Control-Allow-Origin 就可以开启 CORS。 该属性表示哪些域名可以访问资源，如果设置通配符则表示所有网站都可以访问资源 `Access-Control-Allow-Origin:*`。
+
+通用简单设置：
+
+```js
+import cors from "cors"; // 解决跨域
+app.use(cors());
+```
+
+CORS 简单请求（浏览器会直接发起请求）
+
+满足以下条件就是简单请求
+
+1. 满足`GET`,`HEAD`,`POST`方法的其中一个，
+
+2. 满足 `Header` 是 `Accept` 或 `Accept-Language` 或 `Content-Language` 或 `Content-Type`的值为 `text/plain
+`,`multipart/form-data`,`application/x-www-form-urlencoded`的其中之一
+
+发起请求时在头信息之中，增加一个Origin字段。
+
+CORS 复杂请求 （浏览器会先发起预检请求）
+
+ 复杂请求的CORS请求，会在正式通信之前，增加一次 `HTTP查询请求`，称为 `预检请求`,该请求是 `option` 方法的，通过该请求来知道服务端是否允许跨域请求。
+
+ 下面是一个完整例子：
+
+```js
+// index.html
+let xhr = new XMLHttpRequest()
+document.cookie = 'name=xiamen' // cookie不能跨域
+xhr.withCredentials = true // 前端设置是否带cookie
+xhr.open('PUT', 'http://localhost:4000/getData', true)
+xhr.setRequestHeader('name', 'xiamen')
+xhr.onreadystatechange = function() {
+  if (xhr.readyState === 4) {
+    if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304) {
+      console.log(xhr.response)
+      //得到响应头，后台需设置Access-Control-Expose-Headers
+      console.log(xhr.getResponseHeader('name'))
+    }
+  }
+}
+xhr.send()
+```
+
+```js
+//server1.js
+let express = require('express');
+let app = express();
+app.use(express.static(__dirname));
+app.listen(3000);
+```
+
+```js
+//server2.js
+let express = require('express')
+let app = express()
+let whitList = ['http://localhost:3000'] //设置白名单
+app.use(function(req, res, next) {
+  let origin = req.headers.origin
+  if (whitList.includes(origin)) {
+    // 设置哪个源可以访问我
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    // 允许携带哪个头访问我
+    res.setHeader('Access-Control-Allow-Headers', 'name')
+    // 允许哪个方法访问我
+    res.setHeader('Access-Control-Allow-Methods', 'PUT')
+    // 允许携带cookie
+    res.setHeader('Access-Control-Allow-Credentials', true)
+    // 预检的存活时间
+    res.setHeader('Access-Control-Max-Age', 6)
+    // 允许返回的头
+    res.setHeader('Access-Control-Expose-Headers', 'name')
+    if (req.method === 'OPTIONS') {
+      res.end() // OPTIONS请求不做任何处理
+    }
+  }
+  next()
+})
+app.put('/getData', function(req, res) {
+  console.log(req.headers)
+  res.setHeader('name', 'jw') //返回一个响应头，后台需设置
+  res.end('我不爱你')
+})
+app.get('/getData', function(req, res) {
+  console.log(req.headers)
+  res.end('我不爱你')
+})
+app.use(express.static(__dirname))
+app.listen(4000)
+```
+
+上述代码由 http://localhost:3000/index.html 向 http://localhost:4000/ 跨域请求，正如我们上面所说的，后端是实现 CORS 通信的关键。
 
 
 ##  Promise
 
-##  Generator
+Promise是JavaScript中用于处理异步操作的一个关键概念。它代表了一个尚未完成但预期在将来完成的操作。使用Promise，可以避免所谓的“回调地狱”，即多层嵌套的回调函数，从而使代码更加清晰和易
+
+```js
+let nba = new Promise((resolve, reject) => {
+    // 异步操作代码
+    setTimeout(() => {
+        resolve("操作成功");
+    }, 1000);
+    // reject('失败')
+})
+// .then 对应 resolve，.catch 对应 reject 还有个 .finally 无论成功失败都会执行 （根据情况加）
+nba.then(res => console.log(res))
+.catch(err => console.log(err)) // 成功
+.finally(console.log('宝贝不管成功还是失败我都会调用'))
+
+```
+
+优势：解决了回调地狱，链式调用，更优雅的错误处理
+
+```js
+new Promise((resolve, reject) => {
+    setTimeout(() => resolve(1), 1000);
+})
+.then(result => {
+    console.log(result); // 输出 1
+    return result * 2;
+})
+.then(result => {
+    console.log(result); // 输出 2
+    return result * 3;
+})
+.then(result => {
+    console.log(result); // 输出 6
+    return result * 4;
+})
+.catch(error => {
+    console.log('捕获到错误：', error);
+});
+```
 
 ##  async/await
+
+`async` 和 `await` 是建立在 Promise 之上的高级抽象，使得异步代码的编写和阅读更加接近于同步代码的风格
+
+### Async 函数
+
+```js
+async function asyncFunction() {
+  return "异步操作完成";
+}
+asyncFunction().then(value => console.log(value)); // 输出：异步操作完成
+```
+
+### Await 关键字
+
+`await` 关键字只能在 `async` 函数内部使用,它可以暂停async函数的执行，等待 Promise 的解决（resolve），然后以 Promise 的值继续执行函数
+
+```js
+async function asyncFunction() {
+let promise = new Promise((resolve, reject) => {
+    console.log('promise开始执行');
+    setTimeout(() => resolve("完成"), 1000)
+    console.log('promise执行结束');
+  });
+
+  let result = await promise; // 等待，直到promise解决 (resolve)
+  console.log('等待 await');// 这里要等上面完成才会执行 await 错误的话这里就不会继续执行了
+  console.log(result); // "完成"
+}
+asyncFunction();
+```
+
+
+##  Generator
+
+generator也是解决异步的一种方式，只要给一个函数关键字后面添加一个星号*，那么这个函数就被称之为生成器 `generator` 函数
+
+```js
+function* foo () {
+    yield 'a'
+    yield 'b'
+    yield 'c'
+    return 'ending'
+}
+let gen = foo() // 非执行，相当于new了一个实例对象，这就是*作用
+console.log(gen.next());  // { value: 'a', done: false }
+console.log(gen.next());  // { value: 'b', done: false }
+console.log(gen.next());  // { value: 'c', done: false }
+console.log(gen.next());  // { value: 'ending', done: true }
+console.log(gen.next());  // { value: undefined, done: true }
+```
+
+### thunk
+
+看个异步代码：
+
+```js
+function a (next) {
+    setTimeout(() => {
+        console.log('a');
+        next()
+    }, 1000)
+}
+
+function b (next) {
+    setTimeout(() => {
+        console.log('b');
+        next()
+    }, 500)
+}
+
+function c (next) {
+    console.log('c');
+    next()
+}
+
+function* g () {
+    yield a
+    yield c
+    yield b
+}
+
+function run (fn) {
+    let gen = fn()// gen.next 时就要开始调用上面函数了
+
+    function next(err, data) {
+        let result = gen.next(data) // yield a 在最前面最先执行 （这里讨论第一次运行时，下同）
+        if (result.done) return  // yield a 时必然是 false
+        result.value(next) // vale 的值 a 函数整体！！！ 随后又把自己传进行进行递归了 ！！！
+    }
+
+    next() // 执行 next 函数
+}
+
+run(g) // a c b
+```
+
+阮一峰结合 promise 版：
+
+```js
+function a () {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            console.log('a');
+            resolve()
+        }, 1000)
+    })
+}
+
+function b () {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            console.log('b');
+            resolve()
+        }, 500)
+    })
+}
+
+function* g () {
+    yield a()
+    yield b()
+}
+
+let gen = g()
+let result = gen.next()
+
+result.value.then(value => {
+    gen.next()
+})
+```
+
+### co （别人的模块）（node端）
+
+```js
+npm i co 
+
+// 写法
+var co = require('co')
+
+function a () {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            console.log('a');
+            resolve()
+        }, 1000)
+    })
+}
+
+function b () {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            console.log('b');
+            resolve()
+        }, 500)
+    })
+}
+
+function* g () {
+    yield a()
+    yield b()
+}
+
+co(g).then(() => {
+    console.log('generator执行完毕');
+})
+
+```
+
+总结：
+
+generator可以分段执行，可以暂停可以控制每个阶段的返回值
+可以知道是否执行完毕可以借助 Thunk 和 co 处理异步
+但是写法复杂
+
+所以generator函数的意义就是为了打造async，await

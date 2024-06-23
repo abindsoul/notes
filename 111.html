@@ -167,21 +167,87 @@
         // console.log(w);// 999 
         // console.log(window.w);// 999
 
-        let nb = '我是天才';
-        function first(){
-            console.log('第一个函数执行了');
-            seconnd();
-            console.log('天才是假的');
-        }
-        function seconnd(){
-            console.log('第二个函数执行了');            
-        }
-        first();
-        console.log('天才如是说');
+        // let nb = '我是天才';
+        // function first(){
+        //     console.log('第一个函数执行了');
+        //     seconnd();
+        //     console.log('天才是假的');
+        // }
+        // function seconnd(){
+        //     console.log('第二个函数执行了');            
+        // }
+        // first();
+        // console.log('天才如是说');
     </script>
    
 
+    <script>
+        // LHS 引用： 查询变量 ， RHS 引用： 寻找源值
+        // function nb(a) { 
+        //     var b = 10; 
+        //     console.log( a ); 
+        //     return a+b
+        // } 
+        // var c = nb( 666 );
+        // LHS : var c , a , var b , 
+        // RHS : nb(), a=666 , b=10 , console.log () ,(a = 666) , a+b
+    </script>
 
 
+    <script>
+        // async function asyncFunction() {
+        // let promise = new Promise((resolve, reject) => {
+        //     console.log('promise开始执行');
+        //     setTimeout(() => resolve("成功"), 1000)
+        //     console.log('promise执行结束');
+        // });
+
+        // let result = await promise; // 等待，直到promise解决 (resolve)
+        // console.log('等待 await');// 这里要等上面完成才会执行
+        // console.log(result); // "完成"
+        // }
+        // asyncFunction();
+    </script>
+
+    <script>
+        function a (next) {
+    setTimeout(() => {
+        console.log('a');
+        next()
+    }, 1000)
+}
+
+function b (next) {
+    setTimeout(() => {
+        console.log('b');
+        next()
+    }, 500)
+}
+
+function c (next) {
+    console.log('c');
+    next()
+}
+
+function* g () {
+    yield a
+    yield c
+    yield b
+}
+
+function run (fn) {
+    let gen = fn()
+
+    function next(err, data) {
+        let result = gen.next(data)
+        if (result.done) return 
+        result.value(next)
+    }
+
+    next()
+}
+
+run(g) // a c b
+    </script>
 </body>
 </html>

@@ -36,6 +36,7 @@ export default defineConfig({
         items: [
           { text: 'JS基础', link: '/js-md/basis.md' },
           { text: 'JS进阶', link: '/js-md/progress.md' },
+          { text: 'JS高级', link: '/js-md/senior.md' },
 
         ]
       },
