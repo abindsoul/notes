@@ -43,8 +43,8 @@ export default defineConfig({
       {
         text: 'Vue',
         items: [
-          { text: '左侧1', link: '/markdown-examples' },
-          { text: '左侧2', link: '/api-examples' }
+          { text: '基础', link: '/vue-md/basis.md' },
+          { text: '进阶', link: '/vue-md/progress.md' },
         ]
       },
       {

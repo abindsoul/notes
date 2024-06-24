@@ -210,44 +210,8 @@
     </script>
 
     <script>
-        function a (next) {
-    setTimeout(() => {
-        console.log('a');
-        next()
-    }, 1000)
-}
-
-function b (next) {
-    setTimeout(() => {
-        console.log('b');
-        next()
-    }, 500)
-}
-
-function c (next) {
-    console.log('c');
-    next()
-}
-
-function* g () {
-    yield a
-    yield c
-    yield b
-}
-
-function run (fn) {
-    let gen = fn()
-
-    function next(err, data) {
-        let result = gen.next(data)
-        if (result.done) return 
-        result.value(next)
-    }
-
-    next()
-}
-
-run(g) // a c b
+   
     </script>
+    
 </body>
 </html>
