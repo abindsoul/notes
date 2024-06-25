@@ -56,9 +56,10 @@ export default defineConfig({
         ]
       },
       {
-        text: '网络请求',
+        text: '网络',
         items: [
-          { text: '基础', link: '/network-md/basis.md' },
+          { text: '网络基础', link: '/network-md/basis.md' },
+          { text: '网络请求', link: '/network-md/request.md' },
         ]
       },
       
