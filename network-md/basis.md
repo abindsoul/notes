@@ -36,3 +36,49 @@
 
 ## 浏览器输入url发送了什么
 
+### 认识url
+
+举例：http:/www.server.com/diir1/fie1.html
+
+http 是访问协议
+
+www.server.com 是域名（服务器名称）
+
+dir1 请求文件（资源）的路径名
+
+file1.html 文件名
+
+### DNS查询
+
+查询顺序
+
+浏览器自身DNS > 操作系统DNS > 本地hosts文件 > 向域名服务器发送请求
+
+该请求先发送到本地DNS服务（1.根域名服务器 . 2.顶级域名服务器 com）> 权威域名服务器
+
+命令: `dig +trace`
+如:`dig +trace baidu.com`查询百度的
+
+拿到 `ip` 后就可以开始请求了
+
+### 渲染（请求结束拿到资源后）
+
+HTML 解析器将超文本和标签解析为DOM树 
+
+渲染引擎将 CSS 转换为浏览器可以理解的 styleSheets，计算出 DOM 节点样式 (有的属性不好转换如 em单位，颜色字母（如blue，yellow），font-weight:blod，可以提前处理 em > px,颜色换成 rgba 形式，font-weight：700 等)
+
+解析 JavaScript （V8引擎谷歌浏览器）
+
+![V8解析](/image/v8.png "V8解析流程图")
+
+拓展：计算机组成原理
+
+软件+硬件（基于冯诺依曼架构体系）
+
+## CDN
+
+在 DNS 解析到权威域名服务器这层时 变成了 智能DNS 它会自己找最近的节点
+
+负载均衡：当某个节点服务器负载很高时会吧新的请求给最近的其他节点进行处理
+
+

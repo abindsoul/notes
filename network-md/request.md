@@ -1,5 +1,26 @@
 # 网络请求相关
 
+## 请求类型
+
+1. `GET`: 向特定的资源发出请求
+2. `POST`:向指定资源提交数据进行处理请求例:提交表单或者上传文件数据被包含在请求体中
+3. `HEAD`:向服务器索要与GET请求相一致的响应，只不过响应体将不会被返回
+4. `PUT`:向指定资源位置上传其最新内容
+5. `DELETE`:请求服务器删除Request-URI所标识的资源
+6. `OPTIONS`：预检请求（跨域时会触发）
+7. `TRACE`:回显服务器收到的请求，主要用于测试或诊断
+8. `CONNET`:HTTP/1.1协议中预留给能够将连接改为管道方式的代理服务器
+
+自定义请求头时也会触发 `OPTIONS` ，通常包含以下信息：
+- `Origin` 请求来源的域名
+- `Access-Control-Request-Method` 实际请求时要用的请求方法
+- `Access-Control-Request-Headers` 实际请求时将携带哪些自定义头部
+服务器需要在响应头中返回一些信息：
+- `Access-Control-Allow-Origin` 哪些域名可以进行跨域访问
+- `Access-Control-Allow-Methods` 允许使用哪些方法
+- `Access-Control-Allow-Headers` 允许哪些头部字段
+
+
 ## Ajax
 
 AJAX 不是 JavaScript 的规范，它只是一个哥们“发明”的缩写：Asynchronous JavaScript and XML，意思就是用JavaScript执行异步网络请求
@@ -273,3 +294,145 @@ btn.addEventListener('click',()=>{
 })
 
 ```
+
+
+##  跨域和预检请求
+
+### 跨域
+
+突破同源策略（  同源策略是一种约定，由Netscape公司1995年引入浏览器，它是浏览器最核心也最基本的安全功能，如果缺少了同源策略，浏览器很容易受到XSS、CSFR等攻击。所谓同源是指"协议+域名+端口"三者相同，即便两个不同的域名指向同一个ip地址，也非同源。）
+
+如：
+
+同一域名，不同文件或路径是 允许
+
+同一域名，不同端口 不允许
+
+同一域名，不同协议	不允许
+
+域名和域名对应相同ip	不允许
+
+主域相同，子域不同	不允许
+
+不同域名	不允许
+
+
+
+#### 解决方法
+
+- JSONP 利用 `<script>`标签的 `src` 属性没有跨域限制  
+    缺点：只能发送GET请求
+    1. JS实现
+    ```js
+    <script>
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+
+        // 传参一个回调函数名给后端，方便后端返回时执行这个在前端定义的回调函数
+        script.src = 'http://www.domain2.com:8080/login?user=admin&callback=handleCallback';
+        document.head.appendChild(script);
+
+        // 回调执行函数
+        function handleCallback(res) {
+            alert(JSON.stringify(res));
+        }
+    </script>
+
+    ```
+
+- CORS 需要后端设置（下面为node端）
+
+浏览器会自动进行 CORS 通信，实现 CORS 通信的关键是后端。只要后端实现了 CORS，就实现了跨域。
+服务端设置 Access-Control-Allow-Origin 就可以开启 CORS。 该属性表示哪些域名可以访问资源，如果设置通配符则表示所有网站都可以访问资源 `Access-Control-Allow-Origin:*`。
+
+通用简单设置：
+
+```js
+import cors from "cors"; // 解决跨域
+app.use(cors());
+```
+
+CORS 简单请求（浏览器会直接发起请求）
+
+满足以下条件就是简单请求
+
+1. 满足`GET`,`HEAD`,`POST`方法的其中一个，
+
+2. 满足 `Header` 是 `Accept` 或 `Accept-Language` 或 `Content-Language` 或 `Content-Type`的值为 `text/plain
+`,`multipart/form-data`,`application/x-www-form-urlencoded`的其中之一
+
+发起请求时在头信息之中，增加一个Origin字段。
+
+CORS 复杂请求 （浏览器会先发起预检请求）
+
+ 复杂请求的CORS请求，会在正式通信之前，增加一次 `HTTP查询请求`，称为 `预检请求`,该请求是 `option` 方法的，通过该请求来知道服务端是否允许跨域请求。
+
+ 下面是一个完整例子：
+
+```js
+// index.html
+let xhr = new XMLHttpRequest()
+document.cookie = 'name=xiamen' // cookie不能跨域
+xhr.withCredentials = true // 前端设置是否带cookie
+xhr.open('PUT', 'http://localhost:4000/getData', true)
+xhr.setRequestHeader('name', 'xiamen')
+xhr.onreadystatechange = function() {
+  if (xhr.readyState === 4) {
+    if ((xhr.status >= 200 && xhr.status < 300) || xhr.status === 304) {
+      console.log(xhr.response)
+      //得到响应头，后台需设置Access-Control-Expose-Headers
+      console.log(xhr.getResponseHeader('name'))
+    }
+  }
+}
+xhr.send()
+```
+
+```js
+//server1.js
+let express = require('express');
+let app = express();
+app.use(express.static(__dirname));
+app.listen(3000);
+```
+
+```js
+//server2.js
+let express = require('express')
+let app = express()
+let whitList = ['http://localhost:3000'] //设置白名单
+app.use(function(req, res, next) {
+  let origin = req.headers.origin
+  if (whitList.includes(origin)) {
+    // 设置哪个源可以访问我
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    // 允许携带哪个头访问我
+    res.setHeader('Access-Control-Allow-Headers', 'name')
+    // 允许哪个方法访问我
+    res.setHeader('Access-Control-Allow-Methods', 'PUT')
+    // 允许携带cookie
+    res.setHeader('Access-Control-Allow-Credentials', true)
+    // 预检的存活时间
+    res.setHeader('Access-Control-Max-Age', 6)
+    // 允许返回的头
+    res.setHeader('Access-Control-Expose-Headers', 'name')
+    if (req.method === 'OPTIONS') {
+      res.end() // OPTIONS请求不做任何处理
+    }
+  }
+  next()
+})
+app.put('/getData', function(req, res) {
+  console.log(req.headers)
+  res.setHeader('name', 'jw') //返回一个响应头，后台需设置
+  res.end('我不爱你')
+})
+app.get('/getData', function(req, res) {
+  console.log(req.headers)
+  res.end('我不爱你')
+})
+app.use(express.static(__dirname))
+app.listen(4000)
+```
+
+上述代码由 `http://localhost:3000/index.html` 向 `http://localhost:4000/` 跨域请求，正如我们上面所说的，后端是实现 CORS 通信的关键。
