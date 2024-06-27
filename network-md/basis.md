@@ -82,3 +82,43 @@ HTML 解析器将超文本和标签解析为DOM树
 负载均衡：当某个节点服务器负载很高时会吧新的请求给最近的其他节点进行处理
 
 
+## http2
+
+最新的超文本传输协议，目前还未全面采用，更高的效率，性能，安全。
+可以在浏览器网络调试工具看到网站使用的是什么协议
+
+特点：
+
+1. 多路复用（Multiplexing），在单个 TCP 连接上同时发送多个请求和响应，可以避免建立多个连接，减少网络延迟，提高效率
+
+2. 二进制分帧（Binary Framing，在应用层（HTPP2）和传输层（TCP or UDP）之间增加的二进制分帧层，将请求和响应拆分为多个帧（frames）。这种二进制格式的设计是的协议更加高效并且容易解析和处理。
+ - 数据帧（Data Frame）：用于传输请求和响应的实际数据。
+ - 头部帧（Headers Frame）：包含请求或响应的头部信息。
+ - 优先级帧（Priority Frame）：用于指定请求的优先级。
+ - 设置帧（Settings Frame）：用于传输通信参数的设置。
+ - 推送帧（Push Promise Frame）：用于服务器主动推送资源。
+ - PING 帧（PING Frame）：用于检测连接的活跃性。
+ - 重置帧（RST_STREAM Frame）：用于重置数据流或通知错误。
+
+3. 头部压缩（Header Compression）：HTTP/2 使用首部表（Header Table）和动态压缩算法来减少头部的大小。这减少了每个请求和响应的开销，提高了传输效率。
+- 请求一发送了所有的头部字段，第二个请求则只需要发送差异数据，这样可以减少冗余数据，降低开销
+
+
+### nodejs 实现 http2
+
+截止2024-4-2日 目前没有浏览器支持http请求访问http2,所以要用https,需要tls证书
+
+如何生成 tls 证书：
+使用 `openssl` 生成 (步骤参考如下)
+1. 生成私钥 
+```sh
+openssl genrsa -out server.key 1024
+```
+2. 生成证书请求文件(用完可以删掉也可以保留)
+```sh
+openssl req -new -key server.key -out server.csr
+```
+3. 生成证书
+```sh
+openssl x509 -req -in server.csr -out server.crt -signkey server.key -days 3650
+```

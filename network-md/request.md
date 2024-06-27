@@ -320,27 +320,83 @@ btn.addEventListener('click',()=>{
 
 #### 解决方法
 
-- JSONP 利用 `<script>`标签的 `src` 属性没有跨域限制  
-    缺点：只能发送GET请求
-    1. JS实现
-    ```js
-    <script>
-        var script = document.createElement('script');
-        script.type = 'text/javascript';
+1. JSONP 利用 `<script>`标签的 `src` 属性没有跨域限制  
+    > 缺点：只能发送GET请求
 
-        // 传参一个回调函数名给后端，方便后端返回时执行这个在前端定义的回调函数
-        script.src = 'http://www.domain2.com:8080/login?user=admin&callback=handleCallback';
-        document.head.appendChild(script);
-
-        // 回调执行函数
-        function handleCallback(res) {
-            alert(JSON.stringify(res));
+```js
+// 前端
+const jsonp = (name)=>{
+    let script = document.createElement('script')
+    script.src = 'http://localhost:3000/api/jsonp?callback'+name
+    document.body.appendChild(script)
+    return new Promise((resolve,reject)=>{ // 用promise更好用
+        window[name]=(data)=>{
+            resolve(data)
         }
-    </script>
+    })
+    
+}
+jsonp(`callback${new Date().getTime()}`).then(res=>{
+    console.log(res); // hello jsonp
+})
 
-    ```
+// 后端 node
+// 安装三个依赖 （记得初始化package文件）
+// npm i express , npm i @type/express , npm i @types/node
+// 这里用的 ts 文件
 
-- CORS 需要后端设置（下面为node端）
+import express from 'express'
+
+const app = express()
+
+app.get('/api/jsonp',(req,res)=>{
+    const {callback} = req.query // 这个 .query 获取 ? 后的参数 也就是前端返回来的函数名
+    res.send(`${callback}('hello jsonp')`)
+})
+
+app.listen(3000,()=>{
+    console.log('server is running')
+})
+
+```
+
+--- 
+
+2. 前端代理（纯前端,仅在开发时期有效，上线后需要 nginx 配置）
+
+```js
+// 给上面的后端例子先加一个接口
+app.get('/api/json',(req,res)=>{
+    res.send({name:'使用代理获取的'})
+})
+
+// 前端 这里用 vite 框架演示 其他框架都差不多
+// vite 起了一个服务段 所以服务端对服务端时就没有跨域问题了
+// vite.config.ts 中配置
+server:{
+    proxy:{
+        'api':{ // 这里是前端发送请求时用的
+            target:'http://localhost:3000', // 这里就是真正请求地址
+            changeOrigin:true, //开启跨域
+            // rewrite:(payh)=>path.replace(/^\/api/,'') // 重写 把 'api' 换成了 ''  空字符串 
+        }
+    }
+}
+
+// 前端某文件的请求
+// fetch('http://localhost:3000/api/json') // 代理前写法
+fetch('/api/json') //代理后
+.then(res=>res.json())
+.then(res=>{
+    console.log(res)
+})
+
+
+```
+
+---
+
+3. 利用 CORS 需要后端设置请求头（下面为node端）
 
 浏览器会自动进行 CORS 通信，实现 CORS 通信的关键是后端。只要后端实现了 CORS，就实现了跨域。
 服务端设置 Access-Control-Allow-Origin 就可以开启 CORS。 该属性表示哪些域名可以访问资源，如果设置通配符则表示所有网站都可以访问资源 `Access-Control-Allow-Origin:*`。
@@ -352,7 +408,7 @@ import cors from "cors"; // 解决跨域
 app.use(cors());
 ```
 
-CORS 简单请求（浏览器会直接发起请求）
+  > 简单请求（浏览器会直接发起请求）
 
 满足以下条件就是简单请求
 
@@ -363,9 +419,9 @@ CORS 简单请求（浏览器会直接发起请求）
 
 发起请求时在头信息之中，增加一个Origin字段。
 
-CORS 复杂请求 （浏览器会先发起预检请求）
+ >  复杂请求 （浏览器会先发起预检请求）
 
- 复杂请求的CORS请求，会在正式通信之前，增加一次 `HTTP查询请求`，称为 `预检请求`,该请求是 `option` 方法的，通过该请求来知道服务端是否允许跨域请求。
+会在正式通信之前，增加一次 `HTTP查询请求`，称为 `预检请求`,该请求是 `options` 方法，通过该请求来知道服务端是否允许跨域请求。
 
  下面是一个完整例子：
 
@@ -436,3 +492,23 @@ app.listen(4000)
 ```
 
 上述代码由 `http://localhost:3000/index.html` 向 `http://localhost:4000/` 跨域请求，正如我们上面所说的，后端是实现 CORS 通信的关键。
+
+---
+
+4. nginx代理（一般在部署上线后配置）
+
+两种方式，直接官网下载 `nginx` ，配置 `conf` 目录下 `nginx.config` 文件，然后双击运行 nginx.exe 就行了
+
+第二种微软商店搜 wsl 下载 Ubuntu , apt-get install nginx 安装
+
+按 win+e 在 Linux 下找 ect > nginx > sites-available > default ，打开该 default 文件
+
+找到 server，写入以下配置：
+```js
+location /api {
+    // http://主机的IP地址:你开启的端口号;
+    proxy_pass http://172.24.177.26:3000; // 配置完成
+    // 可用 cat /etc/resolv.conf 命令获取 ip
+    // 可以直接使用 curl 接口地址 来访问试试
+}
+```
