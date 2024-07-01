@@ -1,6 +1,6 @@
 # Vue 基础
 
-## 父子传参
+## 父子传值
 
 父 > 子
 
@@ -387,233 +387,348 @@ onUnmounted(() => {
 })
 ```
 
-## vuex
+## 什么是SPA
 
-vue2 推荐使用 (vuex3) 的状态管理模式，采用集中式存储管理应用的所有组件的状态。（原理：单例模式：使用过程中通过 Vue.use(Vuex) 安装了Vuex插件,而Vuex 插件是一个对象，它在内部实现了一个 install 方法，这个方法会在插件安装时被调用，从而把 Store 注入到Vue实例里去。也就是说每 install 一次，都会尝试给 Vue 实例注入一个 Store）
+SPA（single-page application）仅在Web页面初始化时加载相应的HTML,Javascript，CSS。一旦页面加载完成，SPA 不会因为用户的操作而进行页面的重新加载或跳转，转而代之的是利用路由机制实现HTML内容变换，UI 与用户的交互，避免页面重新加载
 
-核心：
+**优点**:
+- 用户体验好、快，内容的改变不需要重新加载整个页面，避免了不必要的跳转和重复渲染
+- 对服务器压力较小
+- 前后端职责分离，架构清晰，前端进行交互逻辑，后端负责数据处理
 
-- `state`：单一状态树（存数据的仓库，数据是响应式的）
-    如何使用：`this.$store.state` 或 `mapState` 辅助函数映射到组件
-- `getter`：从基本数据 state 里派生的数据 （相当于计算属性） 
-    如何使用：`store.getters` 或 `mapGetters` 辅助函数映射到组件
-- `mutation`: 唯一能够修改 state 数据的方法（同步） （相当于方法）
-    如何使用：`this.$store.commit('xxx')` 或 `mapMutations` 辅助函数映射到组件
-- `action`: 提交 mutation 而不是直接变更状态（异步） （相当于方法）
-    如何使用：`this.$store.dispatch('xxx')` 或 `mapActions` 辅助函数映射到组件
+**缺点**：
+- 初次加载慢，需要优化按需加载
+- 无法使用浏览器的前进后退
+- SEO难度大
 
-- `modules`: 模块化，每个模块拥有自己的 state、mutation、action、getter
-    如何使用: 
 
-```js
-// 不同的两个文件存放不痛模块数据
-// custom.js
-const customs = {
-    namespaced: true, // 创建命名空间
-    state: { // 存储变量
-        tc1：'你他两还真个天才'
-    },
-    mutations: {
-    // ...此处省略
-  },
-  actions: {
-    // ...此处省略
-  },
-  getters: {
-    // ...此处省略
+## v-if与v-show
+
+`v-if` 是惰性的真正的条件渲染，如果初始渲染条件为假那他就不会渲染直到第一次变为真时，才会渲染
+
+`v-show` 无论初始条件是什么都会渲染，只是利用 `display` 属性对齐进行了隐藏或显示
+
+`v-if` 适合不频繁切换的场景使用，`v-show` 适合非常频繁切换时使用
+
+
+## 动态绑定class与style
+
+都可以使用对象语法或者数组语法进行绑定
+
+```html
+<div :class="{active:isActive,'nb':isNb}" :style="{color:activeColor}"></div>
+
+<div :class="[isActive ? 'active':'',zdnb]" :style="[nbColor]"></div>
+
+// js
+data:{
+  // 对象
+  isActive:true,
+  isNb:false,
+  activeColor:'green',
+  // 数组
+  zdnb:'nb'
+  nbColor:{
+    color:'yellow'
   }
 }
-export default customs
-
-
-// profile.js
-const profile = {
-  namespaced: true,
-  state: {
-    tc2:'好好好你是天才'
-  },
-  mutations: {
-    // ...此处省略
-  },
-  actions: {
-    // ...此处省略
-  },
-  getters: {
-    // ...此处省略
-  }
-}
-export default common
-
-// index.js 将两个文件挂载上
-import Vue from 'vue'
-import Vuex from 'vuex'
-// 引入子store
-import profile from './modules/profile'
-import customs from './modules/customs'
-// Vue.use(Vuex)
-const store = new Vuex.Store({
-  modules: {
-    profile,
-    customs
-  }
-})
-export default store // 导出store，以便于后续使用
-
-// 组件使用
-computed: {
-    ...mapState('profile', ['tc2']),
-    ...mapState('customs', ['tc1'])
-  },
 ```
 
-好处:
+## 单项数据流
 
-1. 能够在vuex中集中管理共享的数据,易于开发和后期的维护
+`prop` 数据都是单向下行绑定的，父级更新会向下流动到子组件中，如果直接在子组件中进行修改会发出警告，可以防止子组件意外改变父组件的状态导致数据流难以理解，子组件想要修改通过 `prop` 传递来的值则可以使用 `emit` 来派发自定义事件，通知父组件并由父组件来修改,每次父组件发生更新时，子组件所有的 `prop` 都会刷新为最新的值
 
-2. 能够高效的实现组件间的数据共从而提高开发效率
-
-3. 存储在vuex中的数据都是响应的能够实时保持数据页面的共享同
-
-
-
-## Pinia
-
-- 完全取代 vuex，完整的 ts 支持
-- 轻量，去除 mutations，
-- actions 支持同步异步
-- 代码扁平化没有模块嵌套，只有 store 的概念，store 之间可以自由使用，每一个 store 都是独立的
-- 无需手动添加 store，一点创建自动添加
-- 支持 vue2 vue3
-
-安装:
-
+- 传递的初始值，子组件希望当做本地的数据来使用，最好在本地定义新的变量并将值赋给它
 ```js
-yarn add pinia
-# 或者使用 npm
-npm install pinia
+props:['wcnb'],
+data:function(){
+  return{
+    nb:this.wcnb // 使用时 用nb就行了
+  }
+}
 ```
 
-使用：
+- 对传入值要进行一些转换操作等，最好使用计算属性处理
+```js
+props:['zdnb'],
+computed:{
+  nb:function(){
+    return this.zdnb.trim()
+  }
+}
+```
+
+
+## computed 和 watch 
+
+`computed` 是计算属性，值具有缓存，只有当其依赖的值改变时，下一次获取的值才会重新计算。
+
+`watch` 观察某值，每当其发生改变时就会触发，类似对数据的监听回调，值无缓存
+
+运用场景：
+
+- 当进行数值计算时，并依赖于其他数据时用 `computed` 可以利用其缓存的特性，避免每次获取都要重新计算
+
+- 当在数据变化时执行异步操作或其他开销较大的操作时，使用 `watch` ，允许在执行异步操作，限制执行该操作的频率，并在得道最终结果前，设置中间状态，这些计算属性无法做到
+
+
+## 修改vue数组
+
+vue2 无法检测以下变动：
+
+- 利用索引设置数组项时 如：vm.items[indexOfItem] = newValue
+- 修改长度时 如：vm.items.length = newLength
+
+解决办法：
 
 ```js
-// main.ts 
-import {createPinia} from 'pinia'
-const store = createPinia()
-app.use(store)
+Vue.set(vm.items,indexOfItem,newValue)
+vm.$set(vm.items,indexOfItem,newValue)
+vm.items.splice(indexOfItem,1,newValue)// 既可以修改值也可以解决修改长度
+```
 
-// store-name.ts index.ts同级目录
-export const enum Names{
-    // 定义枚举值
-    TEST='TEST'
-}
+Vue支持的其他数组方法:
+- push()
+- pop()
+- shift()
+- unshift()
+- splice()
+- sort()
+- reverse()
 
-// src 创建 store 文件夹 再创建 index.ts
-import {defineStore} from 'pinia'
-import {Names} from './store-name'
-export const useTestStore =defineStore(Names.TEST, {
-    state: () => ({
-        // 定义变量
-            current:'我去',
-            name:'天才'
-    }),
-    getters: { // 具有缓存的特性
-        // 定义getter
-    },
-    actions: {
-        // 定义action
-        setCurrent(val:string){
-            this.current='我是action修改的:'+val
+> 理由是受到JavaScript的限制无法实现，但修改vue源码可以发现实际上是可以实现的，不过 `尤大` 认为这样做影响性能得不偿失，所以重写了数组的原型，并支持上面列出的方法来修改仍能保持响应式
+
+JavaScript里:
+
+```js
+let arr =  [1,2,3];
+arr.forEach((item,index)=>{
+    Object.defineProperty(arr,index,{
+        get(){
+            console.log('获取了值:',item);
+            return item
+        },
+        set(newValue){
+            console.log('新的值为:',newValue)
+            item=newValue
         }
-    }
+    })
 })
-
-// 组件使用
-import {useTestStore } from './store'
-const Test = useTestStore() // Test. 即可拿到 state 里定义的属性
-
+// arr[1] // 触发
+// arr[1]=3 // 触发
+// console.log(arr);
+arr.length=4 // 没有触发
+// console.log(arr)
+arr.push(5);  //没有触发监听
+// console.log('arr[3]：',arr[3]);
+// console.log('arr[4]：',arr[4]);
 ```
 
-`state` 的值修改方法
-
-1. 可以直接修改 如上面例子 Test.curren='卧槽'
-2. Test.$patch({ current:'牛逼',name:'小天才'})
-3. Test.$path((state)=>{
-    state.current='哈哈',
-    state.name='笨蛋'
-    })
-4. Test.$state={current:'哈哈',name:'笨蛋'} 会修改整个state（不推荐）
-5. Test.setCurrent('是的没错') 调用 action 里的方法
-
-解构 store 中的 state 变量（结构后不具有响应式，可用 `storeToRefs` 变成响应式）
+vue2源码：
 
 ```js
-import { storeToRefs} from 'pinia' // 引入 storeToRefs 方法
-const {current,name} = storeToRefs(Test) // 解构后具有响应式
+// 保留 自己未修改成功
 ```
----
 
-一些 api 的使用
+该问题在vue3 使用 `proxy` 实现响应式后已解决
 
- - `.$reset()` 将 state 恢复至初始状态
-- `.$subscribe((args,state)=>{},{detached:true})` state 任何值变化后都会触发该函数，有两个参数(args,state) args可以看新旧值，state就是修改后的state对象，detached ，其他的详见官网文档
-- `.$onAction((args)=>{},true)` 调用 action 时会触发  ture 代表 使用的组件被销毁后扔可继续监听 action 触发
 
----
+## 生命周期
 
-持久化插件：
+就是从一个Vue实例开始创建、初始化数据、模板编译、挂载Dom->渲染、更新->渲染、卸载等一系列过程，就是Vue的生命周期
 
-这里是写在 main.ts 里,下面是完整代码
+| 生命周期 | 描述 |
+|---      |---    |
+| beforeCreate | 实例创建之初，组件属性生效之前 |
+| created | 组件实例已创建，属性也绑定，DOM还未生成，$el不可用 |
+| beforeMount | 在挂载开始前调用，相关 `render` 首次被调用 |
+| mounted | dom已挂载 |
+| beforeUpdate | 组件数据更新前调用，在虚拟DOM打补丁前 |
+| updated | 组件数据更新后 |
+| beforeDestory | 组件销毁前调用 |
+| destoryed | 组件销毁后调用 |
+| actived | `keep-alive` 专属，组件被激活时调用|
+| deactived | `keep-alive` 专属,组件被销毁时调用|
 
-```ts
-import { createApp,toRaw } from 'vue'
-import './style.css'
-import App from './App.vue'
-import {createPinia,PiniaPluginContext} from 'pinia'
-  
-type Options={
-    key:string
+### 父组件和子组件生命周期钩子函数执行顺序
+
+- 加载渲染过程
+
+父 beforeCreate > 父 create > 父 beforeMount > 子 beforeCreate > 子 create > 子 beforeMount > 子 mounted > 父 mounted
+
+- 子组件更新
+
+父 beforeUpdate > 子 beforeUpdate > 子 updated > 父 updated 
+
+- 父组件跟新
+
+父 beforeUpdate > 父 updated 
+
+- 销毁过程
+
+父 beforeDestory > 子 beforeDestory > 子 destoryed > 父 destoryed 
+
+
+### 哪个生命周期用异步请求
+
+created、beforeMount、mounted 都可以，因为 `data` 已创建，最推荐created，可以减少loading时间，ssr 不支持 beforeMount、mounted 所以在 created 中可以确保统一性
+
+### 什么阶段能访问DOM
+
+mounted
+
+### 父组件监听子组件生命周期
+
+- 子组件的 mounted 回调中使用 $emit 派发自定义事件给父组件
+- @hook （其他生命周期也可以监听）
+
+```js
+<Child @hook:mounted="do"></Child>
+
+do(){
+  console.log('父组件见听到子组件mounted触发')
 }
-// 一个默认key 如果用户没有设定自己的key就用这个
-const __piniaKey__:string = 'pinia储存'
-// 5. 用来实现存储的函数 key 用来区分不同的实例 value 都懂就是 state 的值
-const setStorage= (key:string,value:any)=>{
-    localStorage.setItem(key,JSON.stringify(value)) // value 要存到 localStorage 记得把值转换一下
+
+// 子组件
+mounted(){
+  console.log('子组件mounted触发')
 }
-// 6.用来读取 localStorage 里数据的函数
-const getStorage=(key:string)=>{
-    // 判断一下有没有当前 key 有的话拿出来 没有就返回空对象 as string 类型断言成string 因为存的就是string
-    return localStorage.getItem(key)? JSON.parse(localStorage.getItem(key) as string):{};
-}
-// 1.定义插件函数
-const piniaPlugin=(options:Options)=>{ //options 用户自定义配置
-    // console.log('context',context); // 可以看到两个使用了的实例(这里看你自己调用过几个实例我这里是两个)
-    // 用函数柯里化处理 pinia 的返回值 
-    return (context:PiniaPluginContext)=>{
-         // 3.解构store
-    const {store} = context;
-    // console.log(store);// 可以看到是两个 proxy 对象
-    // 7. 读取存入的值
-    const data =getStorage(`${options?.key ?? __piniaKey__}-${store.$id}`)
-    // console.log(data);
-    // 4. 利用 .$subscribe 在 state 数据变化时触发搞点事情
-    store.$subscribe(()=>{
-        console.log('检测到数据变化了');
-        // 5.调用储存函数
-        // options?.key ?? __piniaKey__ 这里判断用户设置的key可以有也可以不设置，不设置就会用上面写的默认的  
-        // store.$id 取实例的 id 为了更好的区分不同实例 提高体验
-        // store.$state 是个 proxy 对象不能直接用 用 toRaw 转成普通对象 toRaw 是vue的记得上面引入
-        setStorage(`${options?.key ?? __piniaKey__}-${store.$id}`,toRaw(store.$state))
-    })
-    // 8. 把读到的值返回出去 否则页面刷新还是没有等于白写了半天
-    return{
-        ...data
-    }
-    }
-}
-const store = createPinia()
-// 2.传递给 store 在内部会自己调用这个函数 会返回一些参数用 context 看看
-store.use(piniaPlugin({ // 支持一个自定义对象防止和 localStorage 其他的冲突 也就是 函数要接受的options 这里定义对象了就要用柯里化处理了
-    key:"pinia"
-}))
-createApp(App).use(store).mount('#app')
+
+// 触发顺序
+// 子组件mounted触发 > 父组件见听到子组件mounted触发
 ```
+
+## keep-alive
+
+是Vue的内置组件，可以使被包含的组件保留状态，避免重新渲染，有以下特性：
+- 一般结合路由和动态组件使用，缓存组件
+- 提供 include 和 exclude 属性，都支持正则表达式，include 只要名称匹配才会被缓存，exclude 任何名称匹配的组件都不会缓存且优先级比 include 高
+- 会触发两个钩子函数 actived、deactived
+
+## data为什么是一个函数
+
+在 new Vue 实例是对象，组件中是函数，组件要被重复使用，所以需要将 data 的属性值隔离防止互相影响
+
+
+## v-model 原理
+
+语法糖，用于表单 input、textarea、select等元素上创建双向数据绑定
+
+- text 和 textarea 元素使用 value 属性和 input 事件
+- checkbox 和 radio 使用 checked 属性和 change 事件
+- select 字段将 value 作为 prop 并将 change 作为事件
+
+```html
+<input v-model="some"></input>
+<!-- 相当于 -->
+<input v-bind:value="some" v-on:input="some=$event.target.value"></input>
+
+```
+
+在自定义组件中会默认利用名为 value 的 prop 和名为 input 的事件
+
+```html
+<!-- 父组件中使用 -->
+<child v-model="cool"></child>
+
+<!-- 子组件 -->
+<div>{{value}}</div>
+props:{
+  value:string
+},
+method:{
+  test(){
+    this.$emit('input','我是天才') // 能够派发input事件给父组件
+  }
+}
+```
+
+## 使用过Vue SSR 吗
+
+SSR 就是服务端将渲染后的 html 直接返回给客户端
+
+优点：
+- 更好的 SEO ，因为 SPA 页面内容是通过 ajax获取的，而搜索引擎工具不会等待 ajax 完成后再抓取页面内容，而 SSR 由服务端直接返回渲染完的页面，所以搜索引擎爬取工具可以抓取渲染好的页面
+- 首屏加载会更快
+
+缺点：
+- 更多的开发条件限制，需要在 nodejs 环境运行，只支持 beforeCreate 和 created 两个钩子函数
+- 更高的服务器负载
+
+
+## vue-router 路由模式
+
+- hash url中带有#，当哈希值发生变化时，不会向服务器发起请求，通过监听hashchange事件来进行路由导航
+- history 正常的url地址，url变化时会向浏览器发送请求，服务器要配置路由规则，否则会出现刷新404的情况
+- abstract 用于非浏览器环境，如 SSR 时，在该模式下，vue-router不会对url进行任何处理，而是将路由信息保存在内存中，通过编程方式进行导航
+
+### 实现原理
+
+hash：
+- 基于 `loaction.hash` 实现，loaction.hash 的值就是 # 后面的内容
+- hash  值改变都会在浏览器中增加一个记录，可以使用浏览器的前进回退来切换
+- 可以通过标签 a 设置 href 属性，当用户点击这个标签后，hash 值就会变化，或者对 loaction.hash 来进行赋值来改变 hash 的值
+- 可以通过 hashchange事件来监听 hash 的变化，从而进行跳转
+
+history：
+- H5提供 History API 来实现 URL 的变化，主要使用 history.pushState() 和 history.replaceState(),可以在浏览器不刷新的情况下操作历史记录
+```js
+window.history.pushState(state,'',path) // 新增一个记录
+window.history.replaceState(state,'',path) // 直接替换当前记录
+```
+- 使用 pushState ， replaceState 实现 URL 变化
+- 使用 popstate 浏览器前进后退时触发，可以用来监听 url 变化
+- pushState，replaceState 不会触发 popstate，当调用 history.back 与 history.go 时会触发（也就是上面的前进后退）
+
+
+## 什么是 MVVM
+
+Model view view-Model，数据变化会更新视图，视图变化也会更新数据，是双向的绑定
+
+## Vue如何实现的双向绑定
+
+- 实现一个监听器 `Observer`：对数据进行遍历，包括子属性对象的属性，利用 `Object.defineProperty()` （vue2）对属性都加上 `getter` `setter` ，这样给某个值赋值就会触发 `setter` 就实现了监听数据变化
+
+- 实现一个解析器 `Compile`：解析 Vue 模板指令，将模板中的变量都换成数据，然后初始化页面视图，并将每个指令对应的节点绑定更新函数，添加监听数据的订阅者，一旦数据有变动，收到通知，调用更新函数对数据进行更新
+
+- 实现一个订阅者 `Watcher`：watcher 是 Observer 和 Compile 之间通信的桥梁，用来订阅 Observer 中的属性值变化消息，收到变化消息后，触发 对应的更新函数
+
+- 实现一个订阅器 `Dep`:订阅器采用 发布-订阅模式，用来收集订阅者 Watcher，对监听器 Observer 和 Watcher 进行统一管理
+
+Compile 编译模板并绑定更新函数到 Wather ，Watcher添加订阅者到 Dep，
+Observer 劫持监听所有属性，属性变化时通知 Dep，Dep通知Watcher ，Watcher调用更新函数实现更新
+
+
+## Proxy与Object.defineProperty
+
+Proxy优势：
+- 可以直接监听整个对象而不是单一属性
+- 可以直接监听数组变化
+- 更多的拦截方法，如apply，ownKeys，deleteProperty，has等
+- 返回的是一个新的对象，可以操作新的对象去完成一些操作，Object.defineProperty只能遍历的去直接修改属性
+- 新标准会受到浏览器厂商重点持续的性能优化
+
+Object.defineProperty优势：
+- 兼容性更好，支持IE9，Proxy无法用polyfill
+
+##虚拟DOM实现原理及优缺点
+
+虚拟DOM就是对真实DOM的抽象描述版，模拟真实DOM树，通过 `diff` 算法来比较两个虚拟DOM树的差异，通过 `pach` 算法将两个虚拟DOM对象的差异应用到真正的DOM树
+
+优点：
+- 无需手动操作DOM，写好 View-Model的代码逻辑框架会更加虚拟DOM和数据进行双向绑定，极大提高开发效率
+- 实现跨平台，虚拟DOM本质上是JavaScript对象，而DOM与平台强相关，相比之下能够更方便跨平台，如服务端渲染，weex开发等等
+- 保证性能下限
+
+缺点：
+- 无法进行针对性的极致优化
+
+
+## v-for的key有什么用
+
+主要作用是为了高效的更新虚拟DOM，提高渲染性能，key可以避免数据混乱的情况出现
+
+key只能是字符串或者数字利息，必须具有唯一性，使用index做key值没有意义
+
+
+## Vue项目进行过哪些优化

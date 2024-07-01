@@ -122,3 +122,39 @@ openssl req -new -key server.key -out server.csr
 ```sh
 openssl x509 -req -in server.csr -out server.crt -signkey server.key -days 3650
 ```
+
+index.js代码（nodemon index.js 启动服务）：
+
+```js
+import http2 from 'node:http2'
+import fs from 'node:fs'
+
+// 创建服务
+// https 可以访问 http2 否则浏览器不支持访问
+const server = http2.createSecureServer({
+    // 证书文件 （必要否则会是 http ）
+    key:fs.readFileSync('./server.key'),
+    cert:fs.readFileSync('./server.crt')
+})
+
+// http2 使用的是流的方法传输的
+// on方法监听 stream （stream 也就是流）
+server.on('stream',(stream,headers)=>{
+    // respond方法返回响应头
+    stream.respond({
+        'content-type':'text/html;charset=utf-8',
+        // 特殊头部需要加 :
+        ':status':200,
+    })
+    // 错误提示
+    stream.on('error', (err) => {
+        console.log(err)
+    })
+    // end方法给前端返回数据
+    stream.end('<h1>我是HTTP2</h1>')
+})
+
+server.listen(9999,()=>{
+    console.log('running in https://localhost:9999');
+})
+```

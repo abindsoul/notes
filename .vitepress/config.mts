@@ -45,6 +45,8 @@ export default defineConfig({
         items: [
           { text: '基础', link: '/vue-md/basis.md' },
           { text: '进阶', link: '/vue-md/progress.md' },
+          { text: '周边生态', link: '/vue-md/periphery.md' },
+
         ]
       },
       {
@@ -60,6 +62,12 @@ export default defineConfig({
         items: [
           { text: '网络基础', link: '/network-md/basis.md' },
           { text: '网络请求', link: '/network-md/request.md' },
+        ]
+      },
+      {
+        text: '框架',
+        items: [
+          { text: 'vite', link: '/framework-md/vite.md' },
         ]
       },
       

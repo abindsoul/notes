@@ -221,7 +221,7 @@ js是单线程的，也就是说同一时间只能执行一个任务，不能同
 - `process.nextTick`（Node.js 环境）（特殊）（在同步之后异步之前执行）
 - `Promise` 的 `then` `catch` `finally` 方法 (注意不是 Promise 本身)
 - `MutationObserver`（浏览器环境）（监视对DOM树所做更改，指定的DOM发生变化时被调用）
-- `Object.boserve` （实时监测js中对象的变化）
+- `Object.observe` （实时监测js中对象的变化）
 
 特殊：
 
