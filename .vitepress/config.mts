@@ -6,6 +6,7 @@ export default defineConfig({
   description: "for study and write something about Web",
   outDir:"docs",// 输出目录
   base:"/notes/",// 输出时带上路径以免css的等失效
+  lastUpdated: true,// 最后更新时间
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
     logo: {
@@ -81,7 +82,7 @@ export default defineConfig({
     search:{
         provider:'local'
     },
-
+    lastUpdatedText: "last time",
     socialLinks: [
       { icon: 'github', link: 'https://github.com/abindsoul' }
 

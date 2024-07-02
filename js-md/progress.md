@@ -671,3 +671,21 @@ generator可以分段执行，可以暂停可以控制每个阶段的返回值
 
 所以generator函数的意义就是为了打造async，await
 
+
+
+## 双层for循环内层中断外层
+
+循环也是可以有名称的，如下
+
+```js
+loop:
+for(let i = 0;i < 10; i++){
+    for(let j = 0; j <5; j++){
+        if(j == 3){
+            console.log(j)
+            break loop;
+        }
+        console.log('当前j是：',j)
+    }
+}
+```

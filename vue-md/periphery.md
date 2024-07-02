@@ -231,3 +231,4 @@ store.use(piniaPlugin({ // 支持一个自定义对象防止和 localStorage 其
 }))
 createApp(App).use(store).mount('#app')
 ```
+

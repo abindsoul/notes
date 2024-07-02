@@ -252,7 +252,7 @@ import {WebSocketServer} from "ws";
 
 后端代码:
 
-```
+```js
 const server = app.listen(3000,()=>{
     console.log('http://localhost:3000')
 })

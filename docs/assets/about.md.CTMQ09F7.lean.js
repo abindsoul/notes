@@ -1,1 +1,0 @@
-import{_ as a,c as e,o as t,a3 as r}from"./chunks/framework.RbRFL2qC.js";const p=JSON.parse('{"title":"About","description":"","frontmatter":{},"headers":[],"relativePath":"about.md","filePath":"about.md"}'),o={name:"about.md"},l=r("",7),i=[l];function n(s,_,h,c,u,d){return t(),e("div",null,i)}const f=a(o,[["render",n]]);export{p as __pageData,f as default};

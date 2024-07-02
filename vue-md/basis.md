@@ -732,3 +732,61 @@ key只能是字符串或者数字利息，必须具有唯一性，使用index做
 
 
 ## Vue项目进行过哪些优化
+
+
+## 自定义Hooks
+
+这个东西可以理解为vue3 的 `mixin`,什么你不知道vue2 的 `mixin`
+
+vue2的混入minxin：
+
+```vue
+// mixin.js 定义一个混入对象
+var myMixin = {
+  created: function () {
+    this.hello()
+  }
+  methods: {
+    ...
+  }
+  data:{
+    ...
+  }
+}
+export default myMixin // 导出混入对象，供组件使用
+
+// 其他组件使用
+import myMixin from './mixin.js' // 引入混入对象
+mixins:[myMixin] // 这样就可以在组件里使用了
+```
+
+缺点：
+- 可能出现命名冲突，因为多个mixin可以混入同一个组件，如果多个mixin中出现相同的属性或方法，可能会导致冲突，需要手动解决冲突，比较麻烦
+- 数据来源不清晰，多个mixin混入同一个组件，数据来源不清晰，需要查找多个mixin才能找到数据来源，比较麻烦
+- 复杂性增加：当项目中使用多个Mixin时，可能会增加代码的复杂性。因为每个Mixin都有自己的属性和方法，可能会导致组件的逻辑变得难以理解和维护。此外，多个Mixin的使用还可能导致代码冗余和重复
+- 增加代码耦合度：使用Mixin会增加组件与Mixin之间的耦合度。因为Mixin中的代码会被注入到组件中，所以组件和Mixin之间存在一种紧密的联系。这可能会使组件的可复用性和可维护性降低，因为对Mixin的修改可能会影响到使用它的多个组件
+
+---
+
+vue3的 hook：
+
+```ts
+// index.ts 建个hooks文件夹再创建这个文件
+export default function (){
+  const data = ref(0) // 定义一个响应式数据，这里用ref，也可以用reactive，具体看情况
+  const methods = { // 定义一些方法，比如计算属性，事件处理等
+
+  return { // 返回这个hook，这样其他组件就可以使用这个hook了，其他组件使用方法看下面
+  data, // 响应式数据，可以直接在组件里使用，比如 <template>{{data}}</template> 或者 methods.xxx 方法等
+  }
+}
+
+// 其他组件使用
+import myHook from '../hooks' // 引入混入对象
+
+myHook() // 这样就可以在组件里使用了，组件里可以直接使用 myHook().data 或者 myHook().methods.xxx 方法等，具体看hook返回的内容
+```
+
+[前往hook实现base64转换](./progress.md#hook实现图片base64转换)
+
+
