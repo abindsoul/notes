@@ -790,3 +790,467 @@ myHook() // 这样就可以在组件里使用了，组件里可以直接使用 m
 [前往hook实现base64转换](./progress.md#hook实现图片base64转换)
 
 
+## vue3的css新特性
+
+- 如插槽选择器 :slotted(xx元素)、全局选择器 :global(div){} //全局的div都会生效
+- 动态css 在vue中可以使用v-bind直接在css绑定变量值
+- module 看下面例子 一般写tsx或render时用
+```vue
+<template>
+<!-- 如果下面module没有设置名字那就用 $style 来访问 -->
+<div :class="[nb.div,nb.border]">牛逼的很</div>
+</template>
+
+<script>
+  import {useCssModule} from 'vue'
+  const css = useCssModule('nb')
+  console.log(css) // 可以读取到这两个类名
+</script>
+
+<style module="nb"> //这里的nb和上面要对应
+  .div{
+    color:green
+  }
+  .border{
+    border:1px solid #ccc;
+  }
+</style>
+```
+
+## H5适配
+
+先设置meta标签
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+```
+使用淘宝的 flexible.js 来换算px
+
+使用postCss（vite已内置），下面实现一个转换的postcss插件
+
+1. 根目录（不是src里）创建 plugins ，然后创建 postcss-px-to-viewport.ts 文件，
+
+在tsconfig.node.json里 inclued 配置一下该目录 "plugins/**/*",
+
+在 compilerOptions 中允许隐式any， "noImplicitAny":false 
+```ts
+// postcss-px-to-viewport.ts
+
+import { Plugin } from "postcss";
+// 像素稿的默认值 一般是375
+const Options = {
+  viewportWidth: 375, //看UI给的素材是多少
+};
+interface Options {
+  viewportWidth?: number;
+}
+export const postcssPxToViewport = (options: Options = Options): Plugin => {
+  // Object.assign() 静态方法将一个或者多个源对象中所有可枚举的自有属性复制到目标对象，并返回修改后的目标对象
+  const opt = Object.assign({}, Options, options);
+  return {
+    // postcss的配置
+    postcssPlugin: "postcss-px-to-viewport",
+    // 钩子函数 使用Declaration可以吧css节点返回来
+    Declaration(node) {
+      // node.prop 获取css属性名
+      // node.value 获取css属性值
+      //   console.log(node.prop, node.value);
+      // 判断是否为px单位
+      if (node.value.includes("px")) {
+        // 把px单位转换成vw单位
+        const num = parseInt(node.value); //考虑到有小数就用parseInt
+        node.value = `${((num / opt.viewportWidth) * 100).toFixed(2)}vw`; // 当前值/375*100
+        // 判断是否需要加上单位
+      }
+      // 高级玩法
+      //   if (node.value.includes("nb")) {
+      // 这里写的nb 就只会读取到你开发洗的nb 可以拿来区分哪些要转换那些不用转换
+      // 比如 fontsize=18nb  那就会拿到这,而不会拿到 fontsize=18px 的节点了
+      //   }
+    },
+  };
+};
+
+```
+
+2. vite.config.ts中引用一下就ojbk了再不用管了
+
+```ts
+//看你自己导出用的什么名字就导入什么
+import { postcssPxToViewport } from "./plugins/postcss-px-to-viewport"; 
+
+// 这里是写在css里，不是plugins
+ css: {
+    postcss: {
+      plugins: [postcssPxToViewport()],
+    },
+  },
+```
+
+## 主题切换
+
+使用 vueUse（一个hooks库） 的 useCssVar 
+ 
+```vue
+<!-- 随便写个按钮 -->
+<button @click="changeThem">切换主题色</button>
+
+<!-- 安装vueuse  -->
+<!-- npm i @vueuse/core  -->
+<!-- 引入 -->
+<script>
+import { useCssVar } from '@vueuse/core'
+const changeThem = () => {
+  // 定义要改变的变量名
+  const themeColor = useCssVar('--background-color')//要改变的变量名
+  // 改变变量的值
+  themeColor.value = themeColor.value === '#fff' ? '#000' : '#fff'
+}
+</script>
+<style>
+/* 写个背景色变量 */
+:root{
+  --background-color: #fff;
+}
+
+body {
+  position: relative;
+  background-color: var(--background-color);// 原理就是改变这里
+}
+</style>
+```
+
+不使用vueuse库，原理上就是使用 `setProperty` 去设置，`getPropertyValue` 去读取
+
+```js
+document.documentElement.style.getPropertyValue('--background-color')
+document.documentElement.style.setProperty('--background-color', '#000')
+```
+
+## css原子化
+
+可以用现成的框架：[tailwindcss](https://www.tailwindcss.cn/docs/flex)、[windcss](https://cn.windicss.org/guide/)
+
+这里用 unocss 来自己自定义编写（最好配合vite，webpack有阉割）
+
+安装：
+
+```npm
+npm i -D unocss
+```
+
+配置：
+
+```ts
+// vite.config.ts
+import unoCss from 'unocss/vite' // 引入unocss插件
+
+plugins:[
+  unoCss({
+    // 配置规则
+    rules:[
+      ['flex',{display:'flex'}], // 这样就能直接在标签引入flex来当做 display:flex 使用了
+      ['nb',{color:'red'}],
+      // 正则动态玩法
+      [/^fn-(\d+)$/, ([, d]) => ({ "font-size": `${d}px` })], //  如 fn-10 就会变成 fontsize: 10px
+    ],
+    // 组合类名玩法
+      shortcuts: {
+        cike: ["flex", "nb"], // 写 cike 就相当于把 flex nb 都使用了
+      },
+  })
+]
+
+// main.ts 引入
+import 'uno.css' // 引入生成的css文件 这里uno.css是unocss默认生成的文件名，你可以自定义，在配置里写上
+
+// 组件使用 直接在class里写就行了
+<ul class="flex nb fn-55">
+    <li>1</li>
+    <li>2</li>
+    <li>3</li>
+</ul>
+// 组合玩法 使用上面定义的 cike
+<ul class="cike fn-55"> 
+    <li>1</li>
+    <li>2</li>
+    <li>3</li>
+</ul>
+```
+
+unoCss的其他预设引入
+
+[icones官网](https://icones.js.org/)
+
+```ts
+// 图标库需要安装一下
+npm i -D @iconify-json/你官网找的图标库的名字
+
+import {presetIcons,presetAttributify,presetUno} from 'unocss'  //引入
+
+// 配置时和 rules 同级
+presets:[presetIcons(),presetAttributify(),presetUno()] // 引入预设 这里引入了 icon图标 属性化 原子化 三个预设
+
+// presetAttributify 装了这个就不用写在class里了如 
+<ul cike fn="55"> 
+    <li>1</li>
+    <li>2</li>
+    <li>3</li>
+</ul>
+
+// presetUno 集成了tailwindcss里的的类名可以直接使用
+```
+
+## h函数
+
+代码有三种风格：
+- template 模板 编译过程：parser -> sat -> transform ->js api -> generate ->render
+- tsx 写法
+- 函数式组件 h函数
+
+用h函数就是创建了一个虚拟节点，可以跳过编译阶段直接到render
+
+vue3使用较少，一般封装弹窗，按钮使用
+
+```ts
+// h(节点，属性，内容（也可以直接写新的h来渲染子节点）)
+// 引入h函数
+import { h } from 'vue'
+
+// 简单渲染一个按钮
+interface Props  {
+  type: 'success' | 'error'
+}
+const btn2 = (props: Props, ctx: any) => {
+  return h('button', {
+    // 写属性 可以读取props
+    style: {
+      color: props.type === 'success' ? 'green' : 'red'
+    },
+    // 绑定事件
+    onClick: () => {
+      console.log('按钮被点击了')
+      console.log(ctx) //有很多东西 attrs，emit等
+      // 也可以直接写逻辑
+      if (props.type === 'success') {
+        console.log('success')
+      } else {
+        console.log('error')
+      }
+    }
+  }, ctx.slots.default ? ctx.slots.default() : '按钮')//还能读取插槽 只要有第二个形参在
+}
+
+// 组件里直接使用
+<btn2 type="success">success按钮</btn2>
+<btn2 type="error">error按钮</btn2>
+```
+
+## vue3编译宏
+
+### defineProps 
+
+父子传参用
+
+```vue
+<!-- 父组件 -->
+ <Child name="xiaoman"></Child>
+<!-- 子组件 -->
+ <div>{{ name }}</div>
+ <script>
+  defineProps({
+     name: String
+ })
+ </script>
+<!-- 解决泛型问题 -->
+ <script lang='ts' setup>
+import type { PropType } from 'vue'
+ defineProps({
+  type: Array as PropType<string[]>, //父组件传string类型的数组
+ })
+</script>
+
+
+<!-- 使用TS字面量模式 不会有上面方式的泛型问题-->
+<script lang='ts' setup>
+  defineProps<{ name: string }>()
+</script>
+
+<!-- vue3.3新增接受泛型 -->
+<Child :name="['xiaoman']"></Child>
+<script generic="T"  lang='ts' setup>
+ defineProps<{
+    name:T[] // 这样无论是字符串类型的数组还是数字类型的都可以直接写不必在手动修改
+ }>()
+</script>
+```
+
+### defineEmits
+
+派发自定义事件
+
+```vue
+<!-- 父组件 -->
+<Child @send="getName"></Child>
+ <script lang='ts' setup>
+  const getName = (name: string) => {
+     console.log(name)
+ }
+</script>
+<!-- 子组件 -->
+<button @click="send">派发事件</button>
+<script  lang='ts' setup>
+const emit = defineEmits(['send'])
+const send = () => {
+    // 通过派发事件，将数据传递给父组件
+    emit('send', '子组件也是天才')
+}
+</script>
+
+<!-- 子组件TS字面量模式派发 -->
+<script  lang='ts' setup>
+const emit = defineEmits<{
+    (event: 'send', name: string): void
+}>()
+const send = () => {
+  // 通过派发事件，将数据传递给父组件
+  emit('send', '我是子组件的数据')
+}
+</script>
+
+
+<!-- Vue3.3 简短写法 -->
+<script  lang='ts' setup>
+const emit = defineEmits<{
+    'send':[name:string]
+}>()
+const send = () => {
+    // 通过派发事件，将数据传递给父组件
+    emit('send', '我是子组件的数据')
+}
+</script>
+```
+
+### defineExpose 
+
+把组件的属性暴露出去(3.3无变化)
+
+```vue
+<!-- 子组件 -->
+<script  lang='ts' setup>
+const xsb = ref<string>('我是傻逼')
+const not = (): string => {
+    return '不!你不是,你是天才！'
+}
+defineExpose({
+    xsb,
+    not
+})
+</script>
+
+<!-- 父组件 -->
+<div>
+  <p>我是父组件</p>
+  <p>子组件说我是：{{ data }}</p>
+  <p>真的吗：{{ data2 }}</p>
+  <child ref="childRef"></child>
+</div>
+<script setup lang="ts">
+const data = ref<string>('')
+const data2 = ref<string>('')
+const childRef = ref<any>(null) //（类型存疑）
+onMounted(() => {
+  console.log(childRef.value.xsb)
+  data.value = childRef.value.xsb;
+  data2.value = childRef.value.not();
+})
+</script>
+```
+
+### defineOptions
+
+一般拿来定义组件名
+
+```ts
+defineOptions({
+  name:'nb',
+  inheritAttrs: false // 默认true 继承属性 一般写组件时设置为false 防止一些属性继承到根元素上导致一些问题
+})
+```
+
+
+### defineSlots
+
+约束插槽类型，只能用来声明，没有任何参数，只能接受ts的类型
+
+```vue
+<!-- 子组件 -->
+<template>
+ <div>
+     <ul>
+        <li v-for="(item,index) in data">
+            <slot :index="index" :item="item"></slot>
+        </li>
+     </ul>
+ </div>
+</template>
+ <script generic="T"  lang='ts' setup>
+defineProps<{
+    data: T[]
+}>()
+defineSlots<{
+   default(props:{item:T,index:number}):void // slot写属性时必须要和这里能对应上否则会有报错提示
+}>()
+</script>
+
+<!-- 父组件 -->
+<template>
+    <div>
+        <Child :data="list">
+            <template #default="{item}">
+                   <div>{{ item.name }}</div>
+            </template>
+        </Child>
+    </div>
+</template>
+<script lang='ts' setup>
+import Child from './views/child.vue'
+const list = [
+    {
+        name: "张三"
+    },
+    {
+        name: "李四"
+    },
+    {
+        name: "王五"
+    }
+]
+</script>
+```
+
+### defineModel
+
+双向绑定 3.4版本
+
+defineModel() 返回的值是一个 ref，它可以像其他 ref 一样被访问以及修改，不过它能起到在父组件和当前变量之间的双向绑定的作用
+
+```vue
+<!-- 父组件 -->
+<child v-model="inputValue" />
+
+<script setup lang="ts">
+import { ref } from "vue";
+const inputValue = ref();
+</script>
+
+<!-- 子组件 -->
+<input v-model="model" />
+
+<script setup lang="ts">
+const model = defineModel();
+model.value = "xxx";
+</script>
+```
+有种打破单项数据流的错觉，不过只是语法糖，实际上还是接收modelValue的prop和触发update：modelValue事件
+
