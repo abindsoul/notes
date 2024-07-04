@@ -1,5 +1,109 @@
 # Javascript高级相关（高不高级我也不知道能看就行）
 
+## Web Components 组件化开发
+
+### 原生js
+
+- Custom elements：自定义元素
+- Shadow DOM：影子DOM
+- HTML templates：HTML模板
+
+```js
+// btn.js
+class Btn extends HTMLElement{
+    constructor(){
+        super()
+        // 样式隔离
+        const shaDom = this.attachShadow({mode:'open'})
+
+        // 创建元素
+        this.p = this.h('p')
+        this.p.innerText = '我是个p'
+        this.p.setAttribute('style','width:200px;height:100px;border:1px solid black;')
+
+        // template 写法 像写jsx一样写
+        this.template = this.h('template')
+        this.template.innerHTML = '<p>我是template</p><style>p{color:red;}</style>'
+
+        // 把 p 元素添加进去
+        shaDom.appendChild(this.p)
+        shaDom.appendChild(this.template.content.cloneNode(true))
+    }
+     // h 函数
+    h(el){
+      return document.createElement(el) //创建元素
+    }
+
+    // 生命周期钩子
+    // 第一次挂载触发 常用
+    connectedCallback(){
+        console.log('我挂载了')
+    }
+    // 卸载触发 常用
+    disconnectedCallback(){
+        console.log('我卸载了')
+    }
+    // 当自定义元素从一个文档被移动到另一个文档时 并不常用
+    adoptedCallback(){
+        console.log('我移动了')
+    }
+    // 属性改变触发
+    attributeChangedCallback(name,oldValue,newValue){
+        console.log(name,oldValue,newValue)
+    }
+}
+window.customElements.define('my-btn',Btn) //挂载 使用就用这里的名字
+
+// html
+<body>
+  <my-btn></my-btn>
+  <p>我会受影响变色吗  哦当然不会</p>
+</body>
+```
+
+### vue + Web Component
+
+配置 `vite.config.ts`
+
+```ts
+vue({
+  template:{
+    compilerOptions:{
+      //只要是my-开头的标签都认为是自定义组件
+        isCustomElement:tag=>tag.includes('my-') 
+    }
+  }
+})
+```
+
+创建组件：
+
+```vue
+<!-- 创建 my-button.ce.vue  命名必须加 .ce 来识别 -->
+<template>
+  <div>随便写点，你就当我是个button</div>
+</template>
+<script setup lang="ts">
+defineProps<{
+  obj:any
+}>()
+</script>
+
+<!-- 其他组件使用 引入组件 引入 defineCustomElement -->
+<template>
+<!-- 没有类型提示，这种组件是跳过组件检测的 -->
+    <my-btn :obj="JSON.stringify(obj)"></my-btn> 
+</template>
+<script setup lang="ts">
+import { defineCustomElement } from 'vue'
+import customButton from './my-button.ce.vue'
+const btn = defineCustomElement(customButton)
+window.customElements.define('my-btn',btn)
+// 传参 普通类型可以直接传，引用值要用JSON.stringify
+const obj ={name:1}
+</script>
+```
+
 ## 模块化
 
 好处：

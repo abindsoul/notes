@@ -1254,3 +1254,182 @@ model.value = "xxx";
 ```
 有种打破单项数据流的错觉，不过只是语法糖，实际上还是接收modelValue的prop和触发update：modelValue事件
 
+## 环境变量（使用vite）
+
+让开发者区分不同的运行环境，实现兼容开发和生产
+
+[戳这里看官方文档](https://cn.vitejs.dev/guide/env-and-mode.html)
+
+```ts
+import.meta.env // 在该对象上暴漏环境变量 
+
+//BASE_URL:"/"
+// DEV:true
+// MODE:"development"
+// PROD:false
+// SSR:false
+
+// 不要用动态的方式去更改环境变量
+```
+
+根目录创建 .env.[name]文件
+
+```ts
+// 如下创建一个开发环境的
+//.env.development 
+VITE_HTTP = http://www.baidu.com
+
+// 生产环境的
+// .env.production
+VITE_HTTP = https://www.jd.com
+```
+
+生产环境会自动读取 production 文件不用配置，开发环境的如果没有自己读取那就在 package.json 中配置
+
+```ts
+// 开发环境读取.env.development文件 这里名字和自己创建的命名对上
+"dev":"vite --mode development" 
+```
+
+### 在vite.config.ts中配置环境变量
+
+因为 node 是环境使用 process.env 来获取
+
+```ts
+import { loadEnv } from 'vite' // 导入 loadEnv 函数，用于加载环境变量
+
+// 改变写法 
+export default({mode}:any)=>{
+  console.log(loadEnv(mode, process.cwd())) // 返回一个对象，对象上挂载了所有环境变量
+  return defineConfig({
+      plugins: [vue(),]
+  })
+}
+```
+
+## 性能优化 
+
+### 打包优化
+
+打包前的分析：
+
+使用谷歌浏览器自带的 Dev Tools 进行性能分析 LightHouse 可以看到下面跑风：
+
+- First Contentful Paint 首屏加载速度
+- Speed Index 页面各个可见部分的平均时间
+- Largest Contentful Paint 最大内容的绘制时间
+- Time to Interactive 可交互时间,也就是用户可交互的事件渲染完成
+- Total Blocking Time 主进程阻塞时间，此时用户不可交互
+- Cumulative Layout Shift 累积布局偏移，也就是页面布局突然改变
+
+
+打包后的分析（vite）：
+
+安装 rollup-plugin-visualizer
+
+```npm
+npm install rollup-plugin-visualizer
+```
+
+打包后可以看到每个文件的大小，可以把一些三方库按需引入或者 CND 引入
+
+---
+
+vite.config.ts 配置 build
+
+- chunkSizeLimit：2000 限制打包后的文件大小
+- sourcemap：false 是否生成 sourceMap 文件，方便调试
+- minify：false 是否压缩代码 esbuild 打包速度最快 terser打包体积最小
+- cssCodeSplit：true css拆分
+- assetInlineLimit：4000 小于该值的图片打包成base64
+
+---
+
+### PWA 离线缓存
+
+
+PWA 技术的出现就是让web网页无限接近于Native 应用
+
+- 可以添加到主屏幕，利用manifest实现
+- 可以实现离线缓存，利用service worker实现
+- 可以发送通知，利用service worker实现
+
+[官网戳这里](https://vite-pwa-org.netlify.app/)
+
+vite 配置 PWA
+
+```ts
+// 安装
+npm install vite-plugin-pwa -D
+
+// 配置 vite.config.ts
+plugins:[
+  VitePWA({
+    // 配置选项
+  })
+]
+
+```
+
+### 图片懒加载
+
+用第三三方库，指令的方式
+
+```ts
+import lazyPlugin from 'vue3-lazy'
+
+// 使用
+// <img v-lazy="xxx"></img>
+```
+
+[前往封装懒加载指令](./progress.md#指令实现懒加载)
+
+
+### 虚拟列表
+
+原理：只渲染可视区域内的元素，可视区域外就删除掉
+
+参考elementplus 虚拟列表组件 [此处前往](https://element-plus.org/zh-CN/component/table-v2.html#virtualized-table-%E8%99%9A%E6%8B%9F%E5%8C%96%E8%A1%A8%E6%A0%BC)
+
+*等我自己实现一个再补到进阶里*
+
+### 多线程
+
+使用  new Worker 创建,worker脚本与主进程的脚本必须遵守同源限制。他们所在的路径协议、域名、端口号三者需要相同
+
+```
+const myWorker1 = new Worker("./calcBox.js");
+```
+
+都使用postMessage发送消息:
+
+```
+worker.postMessage(arrayBuffer, [arrayBuffer]);
+```
+
+都使用onmessage接收消息:
+
+```
+self.onmessage = function (e) {
+ // xxx这里是worker脚本的内容
+};
+```
+
+关闭：
+
+```
+worker.terminate();
+```
+
+vueUse 有现成的 [戳这里](https://vueuse.org/core/useWebWorker/#usewebworker)
+
+
+### 防抖节流
+
+vueUse 有现成的
+
+[防抖](https://vueuse.org/shared/useDebounceFn/#usedebouncefn)
+
+[节流](https://vueuse.org/shared/useThrottleFn/#usethrottlefn)
+
+自己写 [戳这里](../js-md/progress.md#防抖与节流)

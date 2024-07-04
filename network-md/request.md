@@ -378,7 +378,8 @@ server:{
         'api':{ // 这里是前端发送请求时用的
             target:'http://localhost:3000', // 这里就是真正请求地址
             changeOrigin:true, //开启跨域
-            // rewrite:(payh)=>path.replace(/^\/api/,'') // 重写 把 'api' 换成了 ''  空字符串 
+            rewrite:(payh)=>path.replace(/^\/api/,'') // 重写 把 'api' 换成了 ''  空字符串  
+            // 例如，前端请求 /api/users，但后端服务实际的路径是 /users，你可以通过 rewrite 将 /api/users 重写为 /use
         }
     }
 }
