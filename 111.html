@@ -236,30 +236,83 @@
         // console.log('arr[4]：',arr[4]);
     </script>
     <script>
-    class Btn extends HTMLElement{
-    constructor(){
-        super()
-        // 样式隔离
-        const shaDom = this.attachShadow({mode:'open'})
-        // 创建元素
-        this.p = this.h('p')
-        this.p.innerText = '我是个p'
-        this.p.setAttribute('style','width:200px;height:100px;border:1px solid #000')
-         // template 写法 像写jsx一样写
-         this.template = this.h('template')
-        this.template.innerHTML = '<p>我是template</p><style>p{color:red;}</style>'
+//     class Btn extends HTMLElement{
+//     constructor(){
+//         super()
+//         // 样式隔离
+//         const shaDom = this.attachShadow({mode:'open'})
+//         // 创建元素
+//         this.p = this.h('p')
+//         this.p.innerText = '我是个p'
+//         this.p.setAttribute('style','width:200px;height:100px;border:1px solid #000')
+//          // template 写法 像写jsx一样写
+//          this.template = this.h('template')
+//         this.template.innerHTML = '<p>我是template</p><style>p{color:red;}</style>'
 
-        // 把 p 元素添加进去
-        shaDom.appendChild(this.p)
-        shaDom.appendChild(this.template.content.cloneNode(true))
-    }
-    // h 函数
-    h (el){
-        return document.createElement(el)
-  }
-}
-window.customElements.define('my-btn',Btn) 
+//         // 把 p 元素添加进去
+//         shaDom.appendChild(this.p)
+//         shaDom.appendChild(this.template.content.cloneNode(true))
+//     }
+//     // h 函数
+//     h (el){
+//         return document.createElement(el)
+//   }
+// }
+// window.customElements.define('my-btn',Btn) 
     </script>
+    <script>
+//         function sum(a,b,c){
+//     console.log(a+b+c)
     
+//     }
+// function curry(fn){
+//     return function curried(...args){
+//         if(args.length >= fn.length){
+//             return fn.apply(this,args)
+//         }else{
+//             return function(...args2){
+//                 return curried.apply(this,args.concat(args2))
+//             }
+//         }
+//     }
+// }
+
+// let _sum = curry(sum)
+// let functionA=_sum(1)
+// let functionB=functionA(2)
+// functionB(3)
+// _sum(1)(2)(3)
+    </script>
+    <script>
+let arr = [1, [2, [3, [4, 5]]]];
+
+        // 方法一：flat
+const newArr = arr.flat(Infinity);
+console.log(newArr); // [1, 2, 3, 4, 5]
+
+// 方法二
+Array.prototype.myFlat = function (n) { //必须是普通函数
+    let flat =[]
+    for(let item of this){ //this会指向当前的数组
+        if(Array.isArray(item)){
+            flat = flat.concat(item.myFlat()) //递归调用并将结果通过 concat 拼接
+        }else{
+            flat.push(item)
+        }
+
+    }
+    return flat
+}
+console.log(arr.myFlat()) // [1, 2, 3, 4, 5]
+console.log(arr.toString().split(',')) // [ '1', '2', '3', '4', '5' ]
+
+function flatten(arr){
+    return arr.reduce((pre,item)=>{
+        return pre.concat(Array.isArray(item)? flatten(item):item);
+    },[])
+}
+const newArr2 = flatten(arr);
+console.log(newArr2);
+    </script>
 </body>
 </html>

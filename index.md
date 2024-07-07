@@ -11,7 +11,7 @@ hero:
   actions:
     - theme: brand
       text:  Study Now
-      link: /markdown-examples
+      link: /html-md/basis.md
     - theme: alt
       text: About 
       link: /about

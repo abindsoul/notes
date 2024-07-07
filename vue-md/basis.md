@@ -696,7 +696,7 @@ Model view view-Model，数据变化会更新视图，视图变化也会更新�
 - 实现一个订阅器 `Dep`:订阅器采用 发布-订阅模式，用来收集订阅者 Watcher，对监听器 Observer 和 Watcher 进行统一管理
 
 Compile 编译模板并绑定更新函数到 Wather ，Watcher添加订阅者到 Dep，
-Observer 劫持监听所有属性，属性变化时通知 Dep，Dep通知Watcher ，Watcher调用更新函数实现更新
+Observer 劫持监听所有属性，属性变化时通知 Dep，Dep通知Watcher ，Watcher调用更新函数实现更新（此处理解存疑打上该标记）
 
 
 ## Proxy与Object.defineProperty
@@ -1424,7 +1424,7 @@ worker.terminate();
 vueUse 有现成的 [戳这里](https://vueuse.org/core/useWebWorker/#usewebworker)
 
 
-### 防抖节流
+### 使用防抖节流
 
 vueUse 有现成的
 
@@ -1433,3 +1433,186 @@ vueUse 有现成的
 [节流](https://vueuse.org/shared/useThrottleFn/#usethrottlefn)
 
 自己写 [戳这里](../js-md/progress.md#防抖与节流)
+
+
+## 虚拟DOM与diff算法
+
+### 虚拟DOM
+
+虚拟DOM就是一个普通的js对象，用来描述真实DOM的，虚拟DOM可以减少直接操作真实DOM的次数(真实dom属性非常多)，提高性能，通过 js 生成 AST(抽象语法树) 节点树,(ts转js，es6转es5都会经过AST，v8转字节码时也会进行AST)
+
+
+### diff算法
+
+diff算法就是用来比较新旧虚拟DOM的差异，然后只更新差异部分，提高性能
+
+vue2：
+
+敬请期待
+
+vue3：
+
+- 有key
+
+  - 1.前序对比
+  - 2.尾序对比
+  - 3.新节点如果多出来就是挂载
+  - 4.旧节点如果多出来就是卸载
+  - 5.乱序：
+        5.1 构建新节点映射关系
+        5.2 记录新节点在旧节点的位置数组，如果有多余就删掉，新节点不包含旧节点也删除，节点出现交叉就是移动要去求最长递增子序列
+        5.3 计算最长递增子序列 （贪心+二分查找），如果当前遍历的节点不在子序列说明要进行移动，在序列就跳过
+
+
+- 无key
+
+新增、替换、 删除三步走，新的虚拟dom会按照顺序对旧的虚拟dom进行替换，如果多出来了就做新增，如果少了就做删除
+
+
+## 响应式原理
+
+我靠看懵了，暂缓......
+
+
+## ref全家桶
+
+### ref
+
+包裹后数据变成响应式,支持所有类型,取值、赋值都需要通过 .value
+
+```ts
+import { ref, Ref } from 'vue' //Ref 是 ref 的 interface
+// 可以接收泛型，也可以不写自己进行推导
+type M = {
+  title: string
+}
+let my: Ref<M> = ref({ title: '天才本人' })
+console.log(my.value.title);
+```
+
+### isRef
+
+判断是不是ref对象
+
+```ts
+import { isRef } from 'vue'
+console.log(isRef(my)); // true
+```
+
+### shallowRef
+
+浅层响应式，只对对象的第一层进行响应式处理
+
+```ts
+import { shallowRef } from 'vue'
+let my = shallowRef({ title: '天才本人' ,nb:{title:'真的牛逼'}})
+// 取值时到 .value 都是响应式 .value.title ，.value.nb.title 就不是响应式了
+```
+
+> 不可以将 ref 和 shallowRef 混合使用，会影响 shallowRef 造成视图更新（原因是下面的triggerRef引起的）
+
+### triggerRef
+
+能够手动触发 shallowRef 的更新 
+
+```ts
+setTimeout(() => {
+  my2.value.title = '我被修改了'
+  my2.value.nb.title = '我被修改了'
+  // triggerRef(my2) 
+  //可以观察到不做强制更新时值是变化的视图是没有更新的
+  //做强制更新后视图也会变化了，ref底层会自动调用triggerRef
+  console.log(my2.value.title);
+  console.log(my2.value.nb.title)
+}, 2000);
+```
+
+### customRef
+
+自定义ref，可以传入一个get和set函数，get函数在取值时调用，set函数在赋值时调用（这byd好像也是浅层修改，试了一下）
+
+```ts
+function myRef<T>(value: T) {
+  return customRef((track, trigger) => {
+    return {
+      get() {
+        track() //收集依赖
+        return value
+      },
+      set(newValue) {
+        value = newValue
+        trigger()//触发依赖
+      }
+    }
+  })
+}
+let my3 = myRef({ title: '天才三号', nb: { title: '牛逼的飞起' } })
+setTimeout(() => {
+  // 没有触发视图更新
+  my3.value.title = '三号天才被修改了'
+  my3.value.nb.title = '三号天才被修改了'
+  console.log(my3.value.title);
+  console.log(my3.value.nb.title)
+}, 2000);
+
+let my4 = myRef('小母牛撅屁股，挺牛逼')
+setTimeout(() => {
+  // my4.value = '小母牛不敢牛逼了' //能欧触发视图更新
+}, 3000)
+```
+
+## reactive全家桶
+
+### reactive
+
+将对象变成响应式，只接受引用类型的参数如: Object、Array、Map、Set,取值、赋值不用通过 .value
+
+```ts
+import { reactive } from 'vue'
+// 可以接收泛型，也可以不写自己进行推导
+type M = {
+  title: string
+}
+let my = reactive<M>({ title: '天才本人' })
+
+// 注意直接修改会丢失响应性
+let my5 = reactive<string[]>([])
+const add = () => {
+  // my5.push('我是新来的') //正常能够渲染视图
+  let nb = ['我真牛逼直接修改', '哈哈哈']
+  // my5 = nb; // 直接赋值会丢失响应性，无法渲染视图
+  my5.push(...nb) //不会丢失
+
+  setTimeout(() => {
+    // my5.push('我是异步来的') //正常能够渲染视图
+    let nb2 = ['异步牛逼哥', '我tm改改改']
+    // my5 = nb2; //一样会丢失
+    my5.push(...nb2) //不会丢失
+    console.log('异步的:', my5);
+  }, 2000)
+  console.log(my5);
+}
+
+// 当然可以把数组包裹给对象就可以实现直接修改了
+let my6 = reactive<{ nb: string[] }>({ nb: [] })
+let nb2 = ['翅膀硬了', '我直接修改']
+my6.nb = nb2 //不会丢失响应性
+```
+
+### readonly
+
+将对象变成只读的，不能修改，修改会报错
+
+```ts
+import { reactive, readonly } from 'vue'
+let my = reactive({ title: '天才本人' })
+let my2 = readonly(my)
+// my2.title = '你敢改我试试' // 报错 
+my.title='我是天才直接该原对象'//（但如果直接修改了原始对象那么也会受到影响）
+console.log(my,my2);// 都会变
+```
+
+### shallowReactive
+
+浅层响应式，只对对象的第一层进行响应式处理,到第一个属性（参考shallowRef 是到 .value,问题也一样不要同时与 reactive 一起使用）
+

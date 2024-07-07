@@ -689,3 +689,84 @@ for(let i = 0;i < 10; i++){
     }
 }
 ```
+
+
+## 柯里化
+
+将使用多个参数的函数转换成一系列使用一个参数的函数
+
+思路：
+- 1. 如果参数打到lenghth，直接计算结果
+- 2. 如果参数没有达到length，就返回一个新的函数
+
+```js
+function sum(a,b,c){
+    conslole.log(a+b+c)
+}
+function curry(fn){
+    return function curried(...args){
+        if(args.length >= fn.length){
+            return fn.apply(this,args)
+        }else{
+            return function(...args2){
+                return curried.apply(this,args.concat(args2))
+            }
+        }
+    }
+}
+
+let _sum = curry(sum)
+let functionA=_sum(1)
+let functionB=functionA(2)
+functionB(3) //6
+_sum(1)(2)(3) //6
+```
+
+## 数组扁平化
+
+就是将嵌套的数组变为一维数组
+
+```js
+let arr = [1, [2, [3, [4, 5]]]];
+
+// 方法一：flat
+const newArr = arr.flat(Infinity);
+console.log(newArr); // [1, 2, 3, 4, 5]
+
+// 手搓一个flat方法
+Array.prototype.myFlat = function (n) { //必须是普通函数
+    let flat =[]
+    for(let item of this){ //this会指向当前的数组
+        if(Array.isArray(item)){
+            flat = flat.concat(item.myFlat()) //递归调用并将结果通过 concat 拼接
+        }else{
+            flat.push(item)
+        }
+
+    }
+    return flat
+}
+console.log(arr.myFlat()) // [1, 2, 3, 4, 5]
+
+// 方法二：toString + split (不推荐)
+console.log(arr.toString().split(',')) // [ '1', '2', '3', '4', '5' ]
+
+// 方法三：reduce()
+function flatten(arr){
+    return arr.reduce((pre,item)=>{
+        return pre.concat(Array.isArray(item)? flatten(item):item);
+    },[])
+}
+const newArr2 = flatten(arr);
+console.log(newArr2);//[1, 2, 3, 4, 5]
+
+// 方法四：解构
+function flatten(arr) {
+    while (arr.some(item => Array.isArray(item))) {
+      arr = [].concat(...arr)  // [].concat(1, 2, [3, 4, [5]])  // [1, 2, 3, 4, [5]]
+    }
+    return arr
+  }
+const newArr3 = flatten(arr);
+console.log(newArr3);
+```

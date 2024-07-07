@@ -42,6 +42,12 @@ export default defineConfig({
         ]
       },
       {
+        text: 'Typescript',
+        items: [
+          { text: 'TS基础', link: '/ts-md/basis.md' },
+        ]
+      },
+      {
         text: 'Vue',
         items: [
           { text: '基础', link: '/vue-md/basis.md' },

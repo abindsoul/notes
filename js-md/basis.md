@@ -59,3 +59,19 @@ let 与 const 有独立块级作用域
 
 === 叫做严格相等，是指：左右两边不仅值要相等，类型也要相等
 
+## Math.floor和parseInt
+
+Math.floor() 向下取整，返回小于或等于一个给定数字的最大整数
+
+parseInt() 负数会向上取整，正数会向下取整，会忽略数字后面的非数字字符串
+
+```js
+console.log(Math.floor(4.66))//4
+console.log(parseInt(4.66));//4
+
+console.log(Math.floor(-4.66))//-5
+console.log(parseInt(-4.66));//-4
+```
+
+
+

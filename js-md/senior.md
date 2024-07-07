@@ -1,4 +1,4 @@
-# Javascript高级相关（高不高级我也不知道能看就行）
+# Javascript高级（高不高级我也不知道能看就行）
 
 ## Web Components 组件化开发
 
