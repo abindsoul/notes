@@ -529,7 +529,7 @@ asyncFunction();
 
 
 ##  Generator
-
+ 
 generator也是解决异步的一种方式，只要给一个函数关键字后面添加一个星号*，那么这个函数就被称之为生成器 `generator` 函数
 
 ```js
@@ -670,6 +670,42 @@ generator可以分段执行，可以暂停可以控制每个阶段的返回值
 但是写法复杂
 
 所以generator函数的意义就是为了打造async，await
+
+## 生成器 
+
+function* g(){} 生成器函数，调用后返回一个生成器对象
+
+生成器函数执行后不会立即执行，而是返回一个生成器对象，通过调用生成器对象的next方法，可以执行生成器函数，直到遇到yield关键字，yield后面的值会作为next方法的返回值，yield关键字后面的代码会暂停执行，直到再次调用next方法
+
+```js
+function* nb() {
+  yield Promise.resolve('真的牛逼')
+  yield 1
+  yield '2'
+  yield [1, 2]
+  yield { name: '天才' }
+  yield () => { return '天才的诞生' }
+  yield function () { return '疯子的诞生' }
+}
+// 实例化
+let g = nb()
+// 调用后返回值是个对象 value 就是定义到的东西 done 表示是否生成完毕所有
+console.log(g.next()) // {value: Promise, done: false}
+console.log(g.next())// {value: 1, done: false}
+console.log(g.next())// {value: '2', done: false}
+console.log(g.next())// {value: Array(2), done: false}
+console.log(g.next().value)// {value: ..., done: false} value值是定义的对象可通过.value访问该对象
+console.log(g.next().value())// {done: false, value: ƒ} 可以看到箭头函数 
+console.log(g.next().value())// {done: false, value: ƒ} 尝试用.value调用定义的函数
+console.log(g.next())// {value: undefined, done: true} done:true 时代表生成器所有东西都
+```
+
+
+## 迭代器
+
+移步至 ts symbol类型篇
+[此处前往](../ts-md/basis.md#symbol类型)
+
 
 
 
