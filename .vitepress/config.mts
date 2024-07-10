@@ -45,6 +45,8 @@ export default defineConfig({
         text: 'Typescript',
         items: [
           { text: 'TS基础', link: '/ts-md/basis.md' },
+          { text: 'TS配置', link: '/ts-md/config.md' },
+
         ]
       },
       {

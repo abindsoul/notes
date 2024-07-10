@@ -1056,9 +1056,203 @@ type  key =keyof typeof obj; // type key = "name" | "age"
 
 
 // 把 K 通过 keyof 和 T 联合 解决下面，类型“K”无法用于索引类型“T”
+// 好我们梳理一下，T是继承自object的所以 T就是对象类型
+// 然后通过 keyof 把的对象的 key 提出来 组成了一个联合类型 在这里就是 name | age 
+// 然后把这个联合类型继承给 形参 key
+// 那么形参 key 也就能够安全的访问到 T 的属性了 而不会超出这个范围 
 function nb<T extends object, K extends keyof T>(obj: T, key: K) {
   return obj[key]
 }
+console.log(nb(obj, 'name'));// 天才
+console.log(nb(obj, 'sb'));// 类型“"sb"”的参数不能赋给类型“"name" | "age"”的参数
 ```
 
-太困了明天研究
+利用这个方法可以实现一个工具
+
+```ts
+// 我要在这个接口里全部加上可选 ?
+interface Data {
+  name: string,
+  age: number
+  sex: string,
+  hobby: string,
+  addres: string
+  phone: number | string
+}
+
+type Options<T extends object> = {
+  // 利用keyof会遍历的特性 把每个属性都重写
+  // 这里泛型马上回接收 Data 对象
+  // 用 keyof 把 Data 的属性名剥离出来
+  // 再用这个剥离的key访问T对象该key的值
+  [key in keyof T]?: T[key] // 加个 ? 就实现了我们的需求
+}
+
+type B = Options<Data>
+// 此时 B 就如下 undefined是类型推断自己加进去的
+//   type B = {
+//     name?: string | undefined;
+//     age?: number | undefined;
+//     sex?: string | undefined;
+//     hobby?: string | undefined;
+//     addres?: string | undefined;
+//     phone?: string | number | undefined;
+// }
+let nb: Data = { //会提示缺少类型
+  name: '天才'
+}
+let nb2: B = { // 因为 ? 所以不会有提示
+  name: '天才'
+}
+```
+
+## 命名空间
+
+通过 `namespace` 关键字，在其内部的变量方法在没有进行导出时，外部是无法访问的,支持多层嵌套（常在跨端时使用）
+
+```ts
+namespace Test {
+  let a = '牛逼'
+  export let b = '不牛逼'
+
+  export namespace Test2 {
+    let c = '哇靠'
+    export let d = '太帅了'
+  }
+}
+
+console.log(Test.a); // 访问不到
+console.log(Test.b); // 可以访问
+console.log(Test.Test2.c);// 访问不到
+console.log(Test.Test2.d);// 可以访问
+
+// 如果将 Test 导出，其他文件支持将它的引入
+import { Test } from './xxx文件'
+// 也可以赋值给其他变量
+let test = Test.a
+console.log(Test.b); // 可以访问
+console.log(test); // 同上
+```
+
+## 声明文件 declare  
+
+使用第三方库会经常遇到无法找到 xxx的声明文件的错误，官方提供了声明文件，可以通过 `npm install @types/node -D` 进行下载，但如果没有提供，就需要手动创建一个 d.ts 文件
+
+```ts
+declare var 声明全局变量
+declare function 声明全局方法
+declare class 声明全局类
+declare enum 声明全局枚举类型
+declare namespace 声明（含有子属性的）全局对象
+interface 和 type 声明全局类型
+/// <reference /> 三斜线指令
+```
+
+按照上面的规则我们来试着写一个 express 的声明文件
+
+```ts
+// index.ts
+
+import express from './express' //引入express
+
+const app = express()
+
+const router = express.Router()
+
+app.use('/api', router)
+ 
+router.get('/list', (req, res) => {
+    res.json({
+        code: 200
+    })
+})
+
+app.listen(3000, () => {
+  console.log('server is running at http://localhost:3000')
+})
+
+// express.d.ts
+declare module 'express' {
+  // Router里的方法如get
+  interface Router{
+    get(path:string,callback:(req:any,res:any)=>void):void
+  }
+  // app的
+  interface App{
+    use(path:string,router:any):void
+    listen(port:number,callback?:()=>void)
+  }
+  // express()
+  interface Express {
+    ():App //
+    Router():Router
+  }
+  const express:Express 
+  export default express
+}
+// 这样就可以正常使用了
+// 也可以扩展一些别的东西，这样就会有提示
+declare var a:number
+declare var b:string
+declare function name(params:any){
+}
+```
+
+## Mixins 混入
+
+合并，把两个类合并成一个类，可以理解为类的继承，但与继承不同的是，混入可以混入多个类
+
+```ts
+// 对象混入
+interface Name {
+  name: string
+}
+interface Age {
+  age: number
+}
+interface Sex {
+  sex: string
+}
+let people1: Name = { name: '天才' }
+let people2: Age = { age: 18 }
+let people3: Sex = { sex: '男' }
+
+// 1.扩展运算符合并 （浅拷贝）
+let people = { ...people1, ...people2, ...people3 }
+console.log(people)
+
+// 2.Object.assign (ES6的) （浅拷贝）
+let people4 = Object.assign(people1, people2, people3)
+console.log(people4)
+
+// 3.structureClone() （需要node18以上谷歌浏览器90以上） （深拷贝）
+console.log(structuredClone(people));
+
+
+// 类混入
+// 插件类型的混入
+class Logger { //
+  log(msg: string) {
+    console.log(msg)
+  }
+}
+class HTML {
+  render() {
+    console.log('render');
+  }
+}
+class App {
+  run() {
+    console.log('run');
+
+  }
+}
+type Custructor<T> = new (...args: any[]) => T
+//需要写一个函数来实现
+function pluginMinxins<T extends Custructor<App>>(Base: T) {
+
+}
+
+```
+
+佛了键盘鼠标都坏了头还痛今天先歇了好烦

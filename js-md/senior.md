@@ -114,7 +114,7 @@ const obj ={name:1}
 
 3. 可以实现按需加载
 
-### CommonJS
+### CommonJS （Nodejs环境）
 
 - CommonJS 源自社区
 - CommonJS 的出现早于 ES Module 规范
@@ -156,8 +156,62 @@ Commonjs 不适用浏览器
 因为 CommonJS 是同步加载模块，而加载模块就是去服务端获取模块，加载速度会受网络影响，假如一个模块加载很慢，后面的程序就无法执行，页面就会假死。而服务端能够使用 CommonJS 的原因是代码本身就存储于服务器，加载模块就是读取磁盘文件，这个过程会快很多，不用担心阻塞的问题。
 所以浏览器加载模块只能使用异步加载，这就是 AMD 规范的诞生背景。
 
+---
 
-### ES Module
+### AMD CMD UMD 
+
+AMD （浏览器环境）(基本不用了):
+
+reurireJs
+
+```ts
+// 定义
+define("module", ["dep1", "dep2"], function(d1, d2) {...});
+// 加载模块
+require(["module", "../app"], function(module, app) {...});
+```
+
+CMD （浏览器环境）(基本不用了)（国产）:
+
+seaJs,类似AMD和commonJs的合体
+
+```ts
+// 也是define定义 多了一个require参数
+define(function(require, exports, module) {
+  var a = require('./a'); //模块的路径
+  a.doSomething();
+  
+  var b = require('./b');
+  b.doSomething();
+});
+```
+
+UMD （通用环境）:
+
+兼容AMD和CommonJS规范，真正的把它们糅合在了一起
+
+```ts
+(function (window, factory) {
+    // 检测是不是 Nodejs 环境
+	if (typeof module === 'object' && typeof module.exports === "objects") {
+        module.exports = factory();
+    } 
+	// 检测是不是 AMD 规范
+	else if (typeof define === 'function' && define.amd) {
+        define(factory);
+    } 
+	// 使用浏览器环境
+	else {
+        window.eventUtil = factory();
+    }
+})(this, function () {
+    //module ...
+});
+```
+
+
+
+### ES Module (主流通用)
 
 - ES Module 是 ES6 之后新增的模块化规范，它从 Javascript 本身的语言层面，实现了模块化
 - ES Module 想要完成浏览器端、服务端的模块化大一统，成为通用解决方案
@@ -255,6 +309,20 @@ export default 'default value'
 import { name, age, default as title } from './module.js' // 此时默认成员需要用 default as 来接收
 import title, { name, age } from './module.js' // 简写的方式，将默认成员放在最前面
 ```
+
+动态引入：
+
+```ts
+// 当在某方法执行后或者某些逻辑里 需要引入时
+// import 只能在最上层使用，所以要动态导入
+if(true){
+  // import xxx from './xxx' 这样不行
+  import('./xxx').then(res=>{ // 这样无敌了
+    console.log(res)// 拿想用的东西就行了
+  })
+}
+```
+
 
 使用 ES Module 执行 JS 代码:
 
