@@ -1230,29 +1230,970 @@ console.log(structuredClone(people));
 
 
 // 类混入
-// 插件类型的混入
-class Logger { //
+// 像插件一样将类混入进去
+class Logger { // 待注入的对象
   log(msg: string) {
     console.log(msg)
   }
 }
-class HTML {
+class HTML { // 待注入的对象
   render() {
     console.log('render');
   }
 }
-class App {
+class App { // 主对象
   run() {
     console.log('run');
-
   }
 }
+// 构造函数类型
 type Custructor<T> = new (...args: any[]) => T
 //需要写一个函数来实现
 function pluginMinxins<T extends Custructor<App>>(Base: T) {
+  return class extends Base {
+    // 注入其他方法
+    private Logger = new Logger()
+    private HTML = new HTML()
 
+    constructor(...args: any[]) {
+      super(...args)
+      // 在这里声明注入的方法
+      this.Logger = new Logger()
+      this.HTML = new HTML()
+
+    }
+    // 原来的run方法，如果想调用其他类里的方法就要注入进来
+    run() {
+      // 这里就能调用这些注入的方法了
+      this.Logger.log('run')
+      this.HTML.render()
+    }
+    // 也可以提供新的方法并且内部也可以代用上面注入的方法
+    add() {
+      this.Logger.log('add')
+    }
+  }
 }
-
+// 使用 pluginMinxins 函数
+const EnhancedApp = pluginMinxins(App);
+const app = new EnhancedApp();
+app.run(); // 输出: run, render
+app.add(); // 输出: add
 ```
 
-佛了键盘鼠标都坏了头还痛今天先歇了好烦
+## 装饰器 Decorater
+
+是一种特殊类型的声明，可以附加到类声明、方法、访问器、属性或参数上。装饰器使用 @expression 的形式，其中 expression 必须是一个函数，该函数在运行时被调用，并带有关于被装饰的声明的信息
+
+必须在 tsconfig.json 文件中进行配置
+
+```ts
+// 将这两项打开
+"experimentalDecorators": true,
+"emitDecoratorMetadata":true
+```
+
+### 类装饰器 ClassDecorator
+
+类装饰器应用于类构造函数，可以用来监视、修改或替换类定义
+
+```ts
+// 装饰器函数
+const sealed: ClassDecorator = (constructor: Function) => {
+  // 可以在不破坏类的源码情况下增加属性和方法
+  // 在实例化的时候会自动调用这里面的内容
+  constructor.prototype.nb = '我是牛逼我是新添加的'
+  constructor.prototype.fn = () => {
+    console.log('我是憨憨');
+  }
+  // 下面两项会密封对象 精致添加属性和方法到construct和prototype上
+  // Object.seal(constructor);
+  // Object.seal(constructor.prototype);
+}
+
+@sealed // 用@声明装饰器函数
+class Greeter {
+  // ...... 
+}
+
+const hh = new Greeter() as any //为了方便演示用断言成any
+// sealed(Greeter) // @语法不支持可以这样写 要在声明 class 后书写
+
+console.log(hh.constructor.prototype);
+hh.fn()
+console.log(hh.nb);
+```
+
+### 装饰器工厂
+
+它返回一个函数，这个函数才是真正的装饰器。装饰器工厂的主要用途是允许你在应用装饰器时传递参数，从而使装饰器更加灵活和可配置
+
+```ts
+// 装饰器工厂传参
+const sealed = (name: string) => { // 这里参数是 @sealed 传递的
+  const fn: ClassDecorator = (constructor: Function) => {
+    constructor.prototype.nb = name
+    constructor.prototype.fn = () => {
+      console.log('我是憨憨');
+    }
+  }
+  return fn // 用闭包来保证 name 能被获取到
+}
+
+@sealed('你是天才')
+class Greeter {
+  // ...... 
+}
+
+const hh = new Greeter() as any
+// sealed(Greeter) // @语法不支持可以这样写 要在声明 class 后书写
+
+console.log(hh.constructor.prototype);
+hh.fn()
+console.log(hh.nb);
+```
+
+### 方法装饰器 MethodDecorator
+
+方法装饰器可以用来监视、修改或替换方法定义，在类的方法声明之前声明，并且可以访问和修改方法的属性描述符
+
+```ts
+// 这里就是方法装饰器函数
+const Get = (url: string): Function => {
+  const fn: MethodDecorator = (target:Object, propertyKey:string | symbol, descriptor: PropertyDescriptor) => { //三个参数 目标对象、属性键和属性描述符
+    console.log(target, propertyKey, descriptor);
+
+    fetch(url).then(res => res.json()).then(res => {
+      descriptor.value(res)
+    })
+  }
+  return fn
+}
+
+class Greeter {
+  @Get('https://v1.hitokoto.cn') //方法装饰器在这里
+  getList(data: any) { //接口请求的返回值会在在这里接收
+    console.log(data);
+  }
+}
+
+const hh = new Greeter() as any
+```
+
+### 参数装饰器 ParameterDecorator 
+
+顾名思义就是参数的装饰器... 
+
+```ts
+import 'reflect-metadata'
+
+// 通过参数选择器将上面接口返回值的 hitokoto 给剥离出来 配合 reflect-metadata 库
+const Get = (url: string): Function => {
+  const fn: MethodDecorator = (target, propertyresult: any, descriptor: PropertyDecorator) => { //三个参数 目标对象、属性键和属性描述符
+    const key = Reflect.getMetadata('nb', target)
+    console.log(key);
+
+    fetch(url).then(res => res.json()).then(res => {
+      descriptor.value(res ? res[key] : '')
+    })
+  }
+  return fn
+}
+const Resault = (): Function => {
+  const fn: ParameterDecorator = (constructor, key, index) => { // index是 该参数在函数参数列表中的索引，前两个和方法装饰器的形参一样
+    // 使用 Reflect 库的defineMetadata 保存一下
+    Reflect.defineMetadata('nb', 'hitokoto', constructor)
+  }
+  return fn
+}
+
+class Greeter {
+  @Get('https://v1.hitokoto.cn')
+  getList(@Resault() data: any) { //接口请求的返回值会在在这里接收
+    console.log(data);
+  }
+}
+
+const hh = new Greeter() as any
+```
+
+### 属性装饰器 PropertyDecorator
+
+用的不多
+
+```ts
+const Name: PropertyDecorator = (target: Object, propertyKey: string | symbol) => {
+  console.log(target, propertyKey);
+}
+
+class Greeter {
+  @Name
+  nb: string
+  constructor() {
+    this.nb = '逆时针牛逼'
+  }
+}
+
+const hh = new Greeter() as any
+```
+
+## 发布订阅模式
+
+vue2的eventbus，electron的ipcMain和ipcRenderer，node的eventemitter，DOM2事件模型等等都是基于发布订阅模式实现的如 addEventListener removeEventListener
+
+
+```ts
+// 自定义事件 （订阅中心）
+const e = new Event('add')
+const add = () => {
+  console.log('add触发了')
+}
+// 监听器
+document.addEventListener('add', add, {
+  once: true // 开启这个就只会触发一次
+})
+// 派发器
+document.dispatchEvent(e)
+document.dispatchEvent(e)
+document.dispatchEvent(e)
+// 当然了也可以移除
+document.removeEventListener('add', add)
+```
+
+### 手写实现发布订阅
+
+```ts
+// 实现 once on emit off 订阅中心Map<事件名称,[Function]订阅者合集>
+
+interface NB{
+    events:Map<string,Function[]>,// 事件中心
+    once:(event:string,callback:Function)=>void, // 只触发一次
+    on:(event:string,callback:Function)=>void, // 监听事件
+    emit:(event:string,...args:any[])=>void, // 派发事件
+    off:(event:string,callback:Function)=>void // 删除监听器
+}
+
+class Emitter implements NB{
+    // 初始化结构
+    events:Map<string,Function[]>
+    constructor(){
+        this.events=new Map()
+    }
+    // 初始化方法
+    // 只触发一次
+    once(event:string,callback:Function){
+        // 创建一个自定义函数 通过on触发 触发之后立马用off回收掉
+        const onceCallback = (...args:any[])=>{
+            callback(...args)
+            this.off(event,onceCallback) //核心逻辑
+        }
+        // 通过on来收集 自定义的函数
+        this.on(event,onceCallback)
+    }
+    // 监听
+    on(event:string,callback:Function){
+        // 判断是否收集过
+        if(this.events.has(event)){ // 用map的.has 返回值是布尔值
+            // 收集过就添加
+            const callbackList = this.events.get(event)
+            callbackList && callbackList.push(callback)
+        }else{
+            // 没有收集过就创建
+            this.events.set(event,[callback])
+        }
+    }  
+    // 派发
+    emit(event:string,...args:any[]){
+        const callbackList = this.events.get(event) //注意 即使事件并没有订阅者 也会返回一个空数组 
+        console.log(callbackList); 
+        if(callbackList){
+            callbackList.forEach((fn)=>{
+                fn(...args)
+            })
+        }
+    }
+    // 删除
+    off(event:string,callback:Function){
+        const callbackList = this.events.get(event)
+        if(callbackList){
+            // 根据callback的索引来删除
+            callbackList.splice(callbackList.indexOf(callback),1)
+        }
+    }
+}
+// 使用时要先实例化
+const bus = new Emitter()
+
+const fn =()=>{
+    console.log('我是fn')
+}
+
+bus.on('message',(b:boolean,n:number)=>{ // 回调函数可以正常传递参数
+       console.log('我是第一个message',b,n)
+})
+// bus.on('message',fn) // 将 message事件收集
+// bus.off('message',fn) // 将message事件移除
+
+
+bus.once('nb',fn) // 只允许 fn 触发一次
+
+// console.log(bus);
+
+bus.emit('nb',fn) // 只触发一次 虽然下面的也会进行派发 但数组是空的所以不会触发fn
+bus.emit('nb',fn)
+bus.emit('nb',fn)
+```
+
+## set map WeakSet WeakMap 
+
+### set
+
+set是es6新增的数据结构，类似于数组，但是成员的值都是唯一的，没有重复的值,set本身是一个构造函数，用来生成set数据结构
+
+```ts
+let set: Set<any> = new Set([1, '2', false, { name: '天才' }])
+let set2: Set<number> = new Set([1, 2, 3, 4, 5, 5, 5, 5, 5, 5, 5]) //天然去重除引用类型
+// console.log(set2);
+
+// 方法
+// add
+set2.add(999)
+// delect
+set2.delete(1)
+// has
+set2.has(999) // 返回值是布尔值
+// clear
+set2.clear() //全部清空
+
+// 支持遍历
+set.forEach((v => {
+  console.log(v);
+}))
+for (let a of set) {
+  console.log(a);
+
+}
+```
+
+### map
+
+map数据结构，它类似于对象，也是键值对的集合，但是键的范围不限于字符串，各种类型的值（包括对象）都可以当作键,也就是说，Object 结构提供了“字符串—值”的对应，Map 结构提供了“值—值”的对应，是一种更完善的 Hash 结构实现,如果你需要“键值对”的数据结构，Map 比 Object 更合适
+
+```ts
+// map 的key可以是任意类型
+let map: Map<object, any> = new Map()
+
+let arr = [1, 2, 3]
+map.set(arr, 1) // 添加 除了.set方法其他方法与map一致map中的添加方法是add
+console.log(map);
+console.log(map.get(arr));
+```
+
+### weakmap weakset 弱引用
+
+WeakMap结构与Map结构类似，也是用于生成键值对的集合。但是，它与Map有两个区别:
+- WeakMap只接受对象作为键名（null除外），不接受其他类型的值作为键名
+- WeakMap的键名所指向的对象，不计入垃圾回收机制
+
+
+WeakSet 结构与 Set 类似，也是不重复的值的集合，但是，它与 Set 有两个区别:
+- WeakSet 的成员只能是对象，而不能是其他类型的值。
+- WeakSet 中的对象都是弱引用，即垃圾回收机制不考虑 WeakSet 对该对象的引用，也就是说，如果其他对象都不再引用该对象，那么垃圾回收机制会自动回收该对象所占用的内存，不考虑该对象还存在于 WeakSet 之中
+
+```ts
+// weakmap
+let obj: any = { name: '牛逼' } // 该对象第一次引用
+let hh: any = obj // 第二次
+let weakmap: WeakMap<object, any> = new WeakMap()
+
+// 键必须是引用类型
+weakmap.set(obj, '这也行啊我靠') // 仍是第二次 weakmap 的引用不会计入垃圾回收 
+// obj = null // -1次
+// hh = null  // -1次 两次都没了 obj被回收 weakmap就拿不到obj了
+console.log(weakmap.get(obj)) // 这也行啊我靠 如果在这之前obj被回收了那就拿不到值了
+
+// 不允许遍历 不允许取键
+// let keys = weakmap.keys() // 报错
+
+// weakset
+let obj2 = { name: '对唔住' }
+let obj3 = { name: '我系差人' }
+let weakset = new WeakSet([obj2, obj3]); //只能存引用类型 其他机制与weakmap一致
+console.log(weakset);
+```
+
+## proxy Reflect
+
+### proxy
+
+es6的东西，拦截器，vue3响应式用的这玩意，
+
+### Reflect
+
+es6的东西，反射，proxy的辅助函数
+
+### 使用
+
+```ts
+// proxy 支持对象 数组 函数 set map
+// 下面演示常用的api
+
+interface Person {
+  name: string; // 必需的属性
+  age?: number; // 可选的属性
+  [ageame: string]: any; // 索引签名
+}
+
+let person: Person = {
+  name: '张三',
+  age: 24,
+  getName() {
+    return this.name
+  }
+}
+
+// 用Reflect操作对象能够保证上下文正确所以下面会使用到
+
+console.log(person.name);
+console.log(Reflect.get(person, 'name', person))// 与上面一致但最后一个参数能够保证上下文不出错 .set能够赋值返回值是布尔值
+
+
+let personProxy = new Proxy(person, {
+  // 取值触发
+  get(target, key, receiver) {
+    if (target.age && target.age <= 18) {
+      return Reflect.get(target, key, receiver) // 使用es6的 Reflect 操作对象 他们参数一致配合使用最佳
+    } else {
+      return '成年人'
+    }
+  },
+  // 修改值触发  target就是传递进来的对象 key 这个对象的key value新的值 
+  // receiver 用来保证上下文正确
+  set(target, key, value, receiver) {
+    console.log('我靠值被修改了');
+    return Reflect.set(target, key, value, receiver)
+  },
+  // 拦截函数调用
+  apply() {
+    console.log('我靠函数被调用了');
+    return true
+  },
+  // 拦截 in 操作符 
+  has() {
+    console.log('大哥有人in了');
+    return true
+  },
+  // 拦截 Object.getOwnPropertyNames  Object.getOwnPropertySymbols 
+  ownKeys(target) { //使用 Reflect.ownKeys 或 Object.keys 等方法触发 ownKeys 
+    console.log('我是ownKeys');
+    return Object.keys(target).filter(key => !key.startsWith('_'));//过滤掉以_开头的私有属性
+  },
+  // 拦截 new 操作符 （类构造时生效）
+  construct(target, argArry, newTarget) {
+    console.log(argArry);
+    console.log(newTarget)
+    console.log('靠北new了个新的');
+    return target
+  },
+  // 拦截 delete 操作符
+  deleteProperty(target, prop: string) {
+    console.log(target);
+    // console.log(prop);
+    console.log(`靠北${prop}被delete了`);
+    return true
+  }
+})
+
+personProxy.name = '李四'
+console.log(personProxy.name) //张三
+console.log('name' in personProxy)//大哥有人in了
+personProxy.getName //成年人
+Object.getOwnPropertyNames(personProxy); // 我是ownKeys
+delete personProxy.age //靠北age被delete了
+for (const key in personProxy) {  // 我是ownKeys
+  console.log(key);
+}
+```
+
+### 迷你版观察者模式
+
+```ts
+// 收集订阅的函数
+const list: Set<Function> = new Set()
+// 订阅函数
+const autorun = (cb: Function) => {
+  if (!list.has(cb)) { //不存在就添加进去
+    list.add(cb)
+  }
+}
+// 将数据代理
+const observable = <T extends object>(params: T) => {
+  return new Proxy(params, {
+    set(target, key, value, receiver) {
+      const result = Reflect.set(target, key, value, receiver)
+      // 数据有变化了就通知订阅者 执行订阅的函数
+      list.forEach(fn => fn())
+      return result
+    }
+  })
+}
+// 提供可观测的数据
+const state = observable({
+  name: '张三',
+  age: 18
+})
+// 订阅了一个箭头函数
+autorun(() => {
+  console.log('我被执行了')
+})
+console.log(list); //会看到箭头函数被收集进set了
+
+// 修改值会触发收集的箭头函数
+state.name = '牛逼'
+```
+
+## 类型守卫
+
+### 类型收缩|类型收窄
+
+`typeof`检查基本类型 ,`instanceof`检查非基本类型
+
+```ts
+// 比如要在any中筛选出string类型 (typeof 无法在数组 对象 null 正常筛选 都会返回object 函数会返回Function)
+const isString = (str: any) => typeof str === 'string';
+let a = isString('250') //返回值是布尔值
+console.log(a);
+
+// 这里举例数组
+const isArray = (arr: any) => arr instanceof Array
+let b = isArray([1, 2, 3]) //返回值是布尔值
+console.log(b);
+```
+
+### 类型谓词|自定义守卫
+
+`is`来检查, 语法：参数 is 类型 (返回值是布尔值)
+
+```ts
+// 实现一个函数可以传入任何类型
+// 但如果是object就检车里面的属性，如果里面的属性是number就取两位
+// 如果是string就去除左右空格
+// 如果是函数就执行
+
+// 判断是不是对象 ({}) 是Object.prototype的语法糖
+const isObject = (arg: any) => ({}).toString.call(arg) === '[object Object]'
+// 判断number
+const isNum = (num: any):num is number => typeof num === 'number' // num is number 需要的返回值是布尔值，而后面的判断返回值就是布尔值 所以很完美
+// 判断string
+const isString = (str: any):str is string => typeof str === 'string'
+// 判断函数
+const isFn = (fn: any):fn is Function => fn instanceof Function
+
+const fn = (params: any) => {
+  if (isObject(params)) {
+    let val;
+    // 不能用for in 会遍历原型上的属性所以用 object.keys最好
+    Object.keys(params).forEach((key) => {
+      val = params[key]
+      if (isNum(val)) {
+        params[key] = val.toFixed(2) //在这几个逻辑里会发现没有代码提示 就需要定义在上面 自定义守卫了
+      } else if (isString(val)) {
+        params[key] = val.trim()
+      } else if (isFn(val)) {
+        // val()// 这样独立调用this会错乱
+        params[key]() //这样更安全
+      }
+
+    })
+  }
+}
+
+let obj = {
+  a: 123.45674,
+  b: '  牛 逼  ',
+  c: function () {
+    console.log('你挺秀');
+    console.log(this);
+
+  }
+}
+fn(obj)
+console.log(obj);
+```
+
+## 类型兼容 协变 逆变 双向协变
+
+指一个类型是否可以被视为另一个类型的子类型或等价类型
+
+又名鸭子类型
+
+```ts
+interface A{
+    name:string,
+    age:number,
+}
+interface B{
+    name:string,
+    age:number,
+    sex:string
+}
+let a:A ={
+    name:"张三",
+    age:18
+}
+let b:B={
+    name:'李四',
+    age:19,
+    sex:'男'
+}
+
+// 协变
+// AB都有相同的属性
+a=b //并不会报错,只要能遵循A的属性完整那么B多出来的属性无所谓
+
+
+// 逆变 通常发身在函数参数中
+let test=(params:A)=>{
+}
+let test2=(params:B)=>{
+}
+// test = test2 // 会报错
+test2 = test // 不会报错 因为最终执行的还是 test函数而不是test2 
+// A仍是主类型 所以有多余的参数也无所谓
+
+
+// 双向协变  就是即允许了面的 test = test2  也允许 test2 = test
+// 2.0版本之前 之后需要使用类型断言
+// 配置tsconfig.json 里的 "strictFunctionTypes": false 即可
+```
+
+## 泛型工具
+
+typescript 内置的工具
+
+```ts
+interface User{
+    name:string
+    age:number
+    email:string
+}
+
+// Partia 属性 会把所有属性变为可选属性
+type PartialUser = Partial<User>
+// 原理:
+// type customPartial<T> = {
+//     [P in keyof T]?: T[P] //keyof里有提到过
+// }
+
+
+// Required 将所有属性变为必选属性
+type RequiredUser = Required<User>
+// 原理:
+// type customPartial<T> = {
+//     [P in keyof T]-?: T[P] // -? 表示去掉?
+// }
+
+
+// Readonly 将所有属性变为只读属性
+type ReadonlyUser = Readonly<User>
+// 原理:
+// type customReadonly<T> = {
+//     readonly [P in keyof T]: T[P]
+// }
+
+
+// Pick 从一个类型中取出一些属性
+type PickUser = Pick<User,'name'|'age'> //提取出来了name和age属性
+// 原理：
+// type customPick<T, K extends keyof T> = {
+//     [P in K]: T[P]
+// }
+
+
+// Omit 从一个 ~对象类型~ 中去除一些属性 与pick相反
+type OmitUser = Omit<User,'name'|'age'> //会排除掉name和age属性 只剩下email属性
+// 原理：
+// type customOmit<T, K extends keyof T> = Pick <T,Exculd<keyof T,K>> // 用 excluded 来排除掉K中的属性 再用 pick 把剩下的拿到
+
+
+// Exclude 从一个 ~联合类型~ 中去除另指定类型
+type ExcludeUser = Exclude<'name'|'age'|'email','name'|'age'> //会排除掉name和age属性 剩下email属性
+// 原理：
+// type customExclude<T, U> = T extends U ? never : T  //只能是never 因为联合类中会排除never 而unknow不会被排除
+
+---
+
+// Record 将一个类型的所有属性值转化为另一个类型 约束对象的key以及value类型
+type key = 'name'|'age'|'email'
+type value = 'hh'|'你真是天才'|'不你疯子'|'sad'|'sadada' // 
+let person:Record<key,value> = { // key一个都不能少 
+    name:'hh',
+    age:'你真是天才',
+    email:'不你疯子'
+    // email:'是的' // 值没有在范围内会报错
+    // ah:'ada'  // key不能多也不能少
+}
+// 支持嵌套
+let person2:Record<key,Record<'a'|'b'|'c',value>> = {
+    name:{
+        a:'sad',
+        b:'sadada',
+        c:'sad'
+    },
+    age:{
+        a:'sad',
+        b:'sadada',
+        c:'sad'
+    },
+    email:{
+        a:'sad',
+        b:'sadada',
+        c:'sad'
+    }
+}
+// 原理:
+// type customRecord<K extends keyof any, T> = { //keyof any是 extends string|number|symbol的语法糖
+//     [P in K]: T //遍历
+// }
+
+
+// ReturnType 获取一个函数的返回值类型
+const fn =()=>[1,2,3,'sad',false,{name:'ad',age:666}]
+type arrNum = ReturnType<typeof fn> // (string | number | boolean | { name: string; age: number;})[]
+// 原理:
+ // 左侧约束只能传入函数，右侧 传入的args类型 用infer R 用来推断类型 
+// type customReturnType<T extends Function> => T extends (...args: any[]) => infer R ? R : never
+```
+
+## infer 类型推断
+
+只能出现在 `extends` 语句中
+
+```ts
+// 获取promise返回的参数
+interface User{
+    name:string,
+    age:number
+}
+
+type PromiseType = Promise<User>
+type getPromiseType<T>= T extends Promise<infer U> ? U : T
+type T = getPromiseType<PromiseType> // 拿到了 User
+
+// 如果有多层的promise嵌套 那就递归调用一下
+type PromiseType2 =Promise< Promise<User>>
+type getPromiseType2<T> = T extends Promise<infer U> ? getPromiseType2<U> : T
+type T2 = getPromiseType2<PromiseType> // 拿到了 User
+
+
+// intefer 协变 一般出现在对象上
+// 返回的是联合类型
+let obj={
+    name:'123',
+    age:18
+}
+type getObjType<T> = T extends {name:infer U,age :infer U} ? T : never 
+type T3 = getObjType<typeof obj> // 拿到了 {name:string,age:number}
+
+
+// intefer 逆变 一般出现在函数参数上
+// 返回的是交叉类型
+type getFnType<T> = T extends {
+    // a函数
+    a:(x:infer U)=>void,
+    // b函数
+    b:(x:infer U)=>void
+} ? U : never
+// 给他传两个试试
+type T4 = getFnType<{a:(x:string)=>void,b:(x:number)=>void}> // 拿到了 never 因为 string&&number是不可能的
+type T5 = getFnType<{a:(x:number)=>void,b:(x:number)=>void}> // 拿到了 number 两个参数都是number类型所以交叉类型也是number
+```
+
+## infer 类型提取
+
+实现 提取元素
+
+```ts
+type Arr =['a','b','c']
+
+// 获取定义的按顺序来
+type one<T extends any[]> = T extends [infer R,infer R,...any[]] ? R : [] 
+type a = one<Arr> //'a' | 'b' 可以拿多个亦可以拿一个
+
+// 拿最后一个
+type last<T extends any[]> = T extends [...any[],infer last] ? last : never //只需要把解构的放在前面就行了
+type b = last<Arr> //'c'
+
+// 不要最后一个要其他的
+// 方法一
+type rest<T extends any[]> = T extends [] ? [] : T extends [...infer R,any] ? R : []
+type c = rest<Arr> //['a','b']
+// 方法二 unkonw这个地方也可写其他的东西 如 infer xxx 只要最后返回的是 Rest就行了
+type rest2 <T extends any[]> = T extends [...infer Rest,unknown] ? Rest : []
+type d = rest2<Arr> //['a','b']
+
+// 不要 第一个要其他的
+type rest3 <T extends any[]> = T extends [unknown, ...infer Rest] ? Rest : []
+type e = rest3<Arr> //['b','c']
+```
+
+## infer 递归
+
+```ts
+// 实现颠倒数组
+type Arr = [1,2,3,4]
+// 思路 将第一个提取放到最后一个，递归调用剩下的数组
+type ReverArr<T extends any[]> = T extends [infer First,...infer Rest] ? [...ReverArr<Rest> , First] : T
+
+type Result = ReverArr<Arr> // [4,3,2,1]
+```
+
+---
+
+## 案例：实现localStorage支持过期时间
+
+思路:储存的时候顺便带一个时间期限，读取时获取当前时间来对比时间期限判断是否过期，过期就给删除没过期就正常返回
+
+配置tsconfig.json
+
+```json
+"module": "ESNext",// 指定模块语法
+"moduleResolution": "Node",// node环境解析
+"strict":"false" //关闭严格魔术
+```
+
+
+三个主要文件
+
+index.ts
+
+```ts
+// 主要逻辑
+import { Dictionaries } from "./enum/index";
+import { Expire, StorageCls, Key, Data, Result } from "./type/index";
+
+export class Storage implements StorageCls {
+  // 储存
+  set<T>(key: Key, value: T, expire: Expire = Dictionaries.expire) {
+    //默认永久
+    // 数据格式
+    const data = {
+      value, //用户的值
+      [Dictionaries.expire]: expire, //储存的时间期限
+    };
+    // 进行储存
+    localStorage.setItem(key, JSON.stringify(data));
+  }
+  // 获取
+  get<T>(key: Key): Result<T> {
+    const value = localStorage.getItem(key);
+    // 判断是否存在
+    if (value) {
+      const data: Data<T> = JSON.parse(value);
+      const time = new Date().getTime();
+      // 判断是否过期  是number那就需要对比 否则就是永久的
+      if (
+        typeof data[Dictionaries.expire] == "number" &&
+        data[Dictionaries.expire] < time
+      ) {
+        this.remove(key);//过期了就调用定义的remove方法给删除掉
+        return {
+          message: `抱歉您的${key}已过期`,
+          value: null,
+        };
+      } else {
+        return {
+          message: "获取成功",
+          value: data.value,
+        };
+      }
+    } else {
+      return {
+        message: "抱歉不存在",
+        value: null,
+      };
+    }
+  }
+  // 删除
+  remove(key: Key) {
+    localStorage.removeItem(key);
+  }
+  // 清除所有
+  clear() {
+    localStorage.clear();
+  }
+}
+```
+
+type/index.ts
+
+```ts
+// 类型文件
+import { Dictionaries } from "../enum/index";
+
+export type Key = string;// key类型就是存的时候必要的那个字段
+export type Expire = Dictionaries.expire | number; //过期时间
+export interface Data<T> { // 储存的数据类型
+  value: T;
+  [Dictionaries.expire]: Expire;
+}
+export interface Result<T> { // 返回值的类型
+  message: string;
+  value: T | null;
+}
+export interface StorageCls { //主类 下面是主要方法
+  set: <T>(key: Key, value: T, expire: Expire) => void;
+  get<T>(key: string): Result<T>;
+  remove(key: string): void;
+  clear(): void;
+}
+```
+
+enum/index.ts 
+```ts
+// 定义字典 Dictionaries expire过期时间key permanent永久不过期
+export enum Dictionaries{
+    expire= '__expire__',
+    permanent= 'permanent'
+}
+```
+
+使用 Rollup.js 打包,所用到的依赖 rollup、rollup-plugin-typescript2、typescript
+
+```
+//记得先安装下
+npm install rollup rollup-plugin-typescript2 typescript
+```
+
+rollup.config.js 打包配置文件
+
+```js
+import ts from 'rollup-plugin-typescript2'
+import path from 'path'
+import {fileURLToPath} from 'url'
+const metaUrl = fileURLToPath(import.meta.url)
+const dirName = path.dirname(metaUrl)
+export default {
+     input:'./index.ts', //入口文件
+     output:{
+         file:path.resolve(dirName,'./dist/index.js') //打包出口
+     },
+     plugins:[
+        ts()
+     ]
+}
+```
+
+随便写一个html引入打包后的js测试一下
+
+```html
+ <script type="module">
+    import { Storage } from './dist/index.js'
+    const storage = new Storage()
+    storage.set('天才', '就是你', new Date().getTime() + 5000)
+    setInterval(() => {
+    let a = storage.get('天才')
+       console.log(a);
+    }, 500)
+</script>
+```
