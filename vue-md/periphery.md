@@ -232,4 +232,250 @@ store.use(piniaPlugin({ // 支持一个自定义对象防止和 localStorage 其
 createApp(App).use(store).mount('#app')
 ```
 
+## vue-Router
+
+vue3用router4，vue2用router3，这里用router4举例
+
+### 安装配置
+
+安装:
+
+```js
+//挑自己喜欢的
+npm install vue-router@4
+
+yarn add vue-router@4
+
+pnpm add vue-router@4
+```
+
+配置：在 src 下新建 router 文件夹，新建 index.ts 文件，内容如下：
+
+```ts
+import { createRouter, createWebHistory, createWebHashHistory,RouteRecordRaw } from "vue-router";
+
+const routes: Array<RouteRecordRaw> = [ //静态路由表
+  {
+    path: "/",// 访问路径
+    component: () => import("../components/HelloWorld.vue"),//组件
+  },
+];
+
+const router = createRouter({
+  history: createWebHistory(),//路由模式 哈希模式createWebHashHistory 历史模式createWebHistory
+  routes,
+});
+
+export default router;
+```
+
+还要在 main.ts 引入:
+
+```ts
+// main.ts
+import router from "./router"; // 引入路由
+app.use(router); // 使用路由
+```
+
+
+### 使用 
+
+需要 `<router-view>` 标签来展示匹配的路由,`<router-link to='/'>` 标签可以切换路由(可以理解为a标签)，to 指向的是你路由表里的访问路径
+
+```vue
+<!-- 不详细演示了很简单 -->
+<template>
+  <div>
+    <router-link to="/">Home</router-link>
+    <router-link to="/about">About</router-link>
+    <router-view></router-view>
+  </div>
+</template>
+```
+
+### 路由模式
+
+vue3 的 router4 有两种模式：`createWebHistory()` 和 `createWebHashHistory()`
+
+vue2 的 router3 有两种模式：`history` 和 `hash`
+
+就是hash和history只是名字变了
+
+还有ssr渲染所用的 vue3是 `createMemoryHistry`,vue2是 `abstact`
+
+#### hash模式
+
+`hash`模式在url中会带有 `#` 号，原理是通过 `location.hash` 匹配,
+常用作锚点在页面内进行导航，**改变url中的hash部分不会引起页面的刷新**
+
+通过 hashchange 事件监听 url 的变化，改变 url 的方法只有这几种：
+- 通过浏览器的前进后退
+- a标签
+- window.location
+
+
+### history模式
+
+`history`模式利用了 HTML5 History Interface 中新增的 `pushState()` （记录栈中添加一个新的条目,可以使用浏览器的后退） 和 `replaceState()`（不会添加新的条目） 方法
+这两个方法应用于浏览器记录栈，在当前已有的 `back`、`forward`、`go` 的基础之上，它们提供了对浏览器记录栈直接的操作
+
+如：history.pushState({state:1},'','/')（第一个参数是个对象，第二个参数是title一般空着就行，第三个参数是跳转路径） 会跳转到 `/` ,history.replaceState(stateObj, title, [url]);同理
+
+可以监听 `popstate` 来获取相关信息，注意该方法监听不到上面的 `pushState`
+
+`history` 模式下，前端的 URL 必须和实际向后端发起请求的 URL 一致，**如果后端没有正确配置，当用户直接在浏览器中输入 `url`，就会返回 404，所以需要后端支持**。比如在 nginx 中，需要做如下配置：
+
+```js
+location / { try_files $uri $uri/ /index.html; }
+```
+
+
+### 编程式导航
+
+除了下面两种通过标签的跳转，还能使用一些指定的方法在逻辑代码中来进行跳转
+- 通过路由的 `name` 跳转
+- 直接使用 `<a href="/">` 标签 (页面会刷新)
+
+```ts
+const routes: Array<RouteRecordRaw> = [ 
+  {
+    path: "/",// 访问路径
+    name:"home",//路由名称 用name也可以跳转
+    component: () => import("../components/HelloWorld.vue"),//组件
+  },
+]
+```
+link标签中to要传入对象
+```vue
+<router-link :to="{name:'home'}">Home</router-link>
+```
+
+- 使用 `useRouter` 的 `push`
+> 注意区分 `useRouter` 与 `useRoute` ，前者是获取路由实例(可以调用一些方法)，后者是用来获取路由信息(能够获得路由来自哪，要去哪，当前在哪)
+
+```ts
+import {useRouter} from 'vue-router'
+const router = useRouter() // 获取路由实例
+router.push('/')//普通字符串形式
+router.push({path:'/'})//对象形式 name也可以
+```
+
+
+### 历史记录
+
+`replace` 替换当前的路由不会产生历史记录
+
+标签写法：
+```vue
+<router-link replace :to="{name:'home'}">Home</router-link>
+```
+
+编程式写法：
+```ts
+router.replace('/')
+```
+
+`go` `back` 可以横跨历史记录
+
+```ts
+router.go(2)// 前进两个历史记录
+router.back()// 后退一个历史记录
+```
+
+### 路由传参
+
+三种：
+- Query路由传参
+- Params路由传参
+- 动态路由传参
+
+结合案例：
+
+```ts
+// 路由结构
+  {
+    path: "/product", // 要传值的
+    name:"product",
+    component: () => import("../components/Product.vue"),
+  },
+  {
+    path: "/detail", // 接受值的
+    name:"detail",
+    component: () => import("../components/ProductDetails.vue"),
+  },
+```
+
+
+```vue
+<!-- 要传递值得组件 -->
+<template>
+    <div class="produtc">
+        <table>
+            <tr>
+                <th>产品名称</th>
+                <th>产品价格</th>
+                <th>操作</th>
+            </tr>
+
+            <tr :key="item.id" v-for="item in items">
+                <td>{{ item.name }}</td>
+                <td>{{ item.price }}</td>
+                <td><button @click="golook(item)">点击去看详情</button></td>
+            </tr>
+        </table>
+    </div>
+</template>
+<script setup lang="ts">
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+type Item = {
+    name: string,
+    describe: string
+    price: number,
+    id: number
+}
+
+const items: Item[] = [
+    { name: '苹果', describe: '一天一苹果，医生远离我', price: 10, id: 1 },
+    { name: '香蕉', describe: '大香蕉一只大香蕉', price: 20, id: 2 },
+    { name: '橙子', describe: '橙留香的橙', price: 15, id: 3 }
+]
+
+// 1.Query路由传参 使用router push 或者 replace 的时候 改为对象形式新增query 必须传入一个对象
+// 这种方法会将参数暴露在url中
+const golook = (item: Item) => {
+    router.push({
+        path: '/detail',// 某个页面
+        query: item  //也可以 query: { id: item.id }只传单个想要的
+    })
+}
+</script>
+
+------------------------------------
+
+<!-- 获取值的组件 -->
+<template>
+    <div class="details">
+        <div class="name">名称：{{ route.query.name }}</div>
+        <div class="describe">描述：{{ route.query.describe }}</div>
+        <div class="price">价格：{{ route.query.price }}</div>
+        <div class="id">编号：{{ route.query.id }}</div>
+    </div>
+</template>
+<script setup lang="ts">
+import { useRoute } from 'vue-router'
+
+const route = useRoute() // useRoute 不是 useRouter
+
+// 1.Query 路由传参 用query传递就用query接收
+// 可以在上面直接用 route.query.xxx 获取
+
+// 2. Params 路由传参 
+// 接收的时候直接用route.params.xxx
+</script>
+```
+
+Params好像无法一股脑将对象传递了，明天研究
 
