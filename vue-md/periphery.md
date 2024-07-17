@@ -386,7 +386,7 @@ router.back()// 后退一个历史记录
 
 三种：
 - Query路由传参
-- Params路由传参
+- Params路由传参(4.1.4之后必须要用下面的动态路由匹配)
 - 动态路由传参
 
 结合案例：
@@ -451,6 +451,31 @@ const golook = (item: Item) => {
         query: item  //也可以 query: { id: item.id }只传单个想要的
     })
 }
+
+// 2.Params路由传参 原理和上面一样但是 是通过 name 跳转，params传参
+// const golook = (item: Item) => {
+//     router.push({
+//         name: 'detail',// 某个页面的 name 值
+//         params: item // 4.1.4之后这种写法被移除不再适用 // 不会暴露在url中，但是刷新页面会丢失
+//     })
+// }
+const golook2 = (item: Item) => {
+    const data = JSON.stringify(item)
+    router.push({
+        name: 'detail',// 某个页面的 name 值
+        params: { item: data } // 这样的话参数仍会在url中，但是刷新页面不会丢失 而且路由要对该参数匹配 :item
+    })
+}
+// 路由要设置成这样
+// {
+//     path: "/detail/:item",
+//     name: "detail",
+//     component: () => import("../components/ProductDetails.vue"),
+// },
+
+// 3.动态路由传参 其实在第二个例子中就使用了
+// 就是给路由一个用来匹配的字段，然后跳转时传递匹配的参数，这里就不演示了一模一样
+
 </script>
 
 ------------------------------------
@@ -473,9 +498,364 @@ const route = useRoute() // useRoute 不是 useRouter
 // 可以在上面直接用 route.query.xxx 获取
 
 // 2. Params 路由传参 
-// 接收的时候直接用route.params.xxx
+// 接收的时候直接用route.params.xxx 
+// 因为4.1.4之后必须要定义后传递 传递时做了转换 接收时也要转换回去
+const data = JSON.parse(route.params.item as string) // 这里要和路由的匹配参数对应 item //相应的上面渲染用这里的data就行了这里不再写了
+
+// 3. 动态路由传参 第二个例子用过了不演示了
+// 若果数据比较敏感不能暴露在url，就用不敏感的字段传递过来，如id等，再使用传递过来的的id去发请求拿数据就行了
 </script>
 ```
 
-Params好像无法一股脑将对象传递了，明天研究
+### 嵌套路由
 
+就是路由还有子路由
+
+```ts
+[
+  {
+    path: "/",
+    component: () => import("../components/HelloWorld.vue"),
+    children:[
+      {
+        path:'/home',
+        component: () => import("../components/Home.vue")
+      },
+      {
+        path:'/nb',
+        component: () => import("../components/nb.vue")
+      }
+    ]
+  },
+  {
+    path: "/about",
+    component: () => import("../components/about.vue"),
+    children:[
+      {
+        path:'/about/hhh',
+        component: () => import("../components/hhh.vue")
+      }
+    ]
+  },
+]
+```
+
+用的时候和普通路由一样，写好对应的路径就行了
+
+### 命名视图
+
+一个视图里可以一次定义多个组件然后根据情况去渲染某个组件（有点具名插槽的味道）
+
+定义路由：
+```ts
+[
+  path:'/nb'
+  components:{ // 注意这里是 components 不是 component
+    // default 是默认的时候这个名字是死的
+    default: () => import ('../components/nb.vue'),
+    // hhh xxx 都是自己起的 后面要在渲染的地方一一对应
+    hhh:() => import ('../components/hhh.vue'),
+    xxx:() => import ('../components/xxx.vue'),
+  }
+]
+```
+
+使用：
+```vue
+<template>
+  <div>
+    <!-- default -->
+   <router-view></router-view> 
+   <!-- 自定义的 -->
+   <router-view name="hhh"></router-view>
+   <router-view name="xxx"></router-view>
+  </div>
+</template>
+```
+
+### 重定向
+
+访问某个带有重定向的路由时会将访问目标转移到重定向的路由
+
+#### redirect
+
+```ts
+// 定义路由
+[
+  {
+    path:'/wc',
+    component:()=>import ('../components/wc.vue'),
+    // 1.字符串写法
+    redirect:'/wc/wcnb' // 重定向到 wcnb 其他路由也可不一定是子路由
+    // 2.对象写法
+    redirect:{name:'wcnb'} //path也可以不演示了
+    // 3.函数写法
+    redirect:to=>{
+      // to 是一个对象，里面有path name等属性
+      console.log(to)
+      // 可以字符串，也可以对象，还可以传参
+      // return '/wc/wcnb'
+      return {
+        path:'/wc/wcnb',
+        query:{
+          name:'哈哈'
+        }
+      }
+    }
+    children:[
+      {
+        path:'/wc/wcnb',
+        name:'wcnb'
+        component:()=>import ('../components/wcnb.vue')
+      }
+      {
+        path:'/wc/wcsb',
+        component:()=>import ('../components/wcsb.vue')
+      }
+    ]
+  }
+]
+```
+
+#### alias 别名 
+
+就是给这个路由起个别的名字，访问别名时仍会跳转到这个路由
+
+例：
+
+```ts
+[
+  {
+    path:'/user'
+    component:()=>import ('../components/user.vue')
+    // alias:'/user1' // 访问user1时仍会跳转到user
+    // 可以起多个
+    alias:['/user2','/user3','/hhh','/znb'] // 访问user2或user3时仍会跳转到user
+  }
+]
+```
+
+### 路由守卫
+
+全局守卫有三种：
+
+- 全局前置守卫 导航触发时调用，可用来阻止跳转
+- 全局解析守卫 导航被确认之前，同时在所有组件内守卫和异步路由组件被解析之后调用
+- 全局后置守卫 导航完成之后调用，不会改变导航本身
+
+```ts
+// 全局守卫都在定义路由的同时进行定义 (同一个文件里如：index.ts 或 )
+// 结合一个登陆的案例 没有登录时无法访问主页home,只有登录后存储了token才可以访问且登录后就不能访问登录页
+
+import { createVNode, render } from "vue";//这里是为了挂载进度条组件导入的方法
+
+// 路由配置
+[
+  {
+    path: "/",
+    component: () => import("../components/HelloWorld.vue"),
+    alias: ["/home"],
+  },
+  {
+    path: "/login",
+    component: () => import("../components/login.vue"),
+  },
+]
+
+// 进度条 在守卫之前挂载到dom上
+const Vnode = createVNode(loadingBar);//将组件转成虚拟dom
+render(Vnode, document.body);//挂载
+
+// 定义一个 白名单 或者说不需要登录就能访问页面
+const whileList: string[] = ["/login"];
+
+// 全局前置守卫 
+// 这里做拦截未登录的访问案例
+router.beforeEach((to, form, next) => {
+
+  // 调用进度条开始的方法
+  Vnode.component?.exposed?.startLoading();
+
+  // 获取token
+  const token: string | null = localStorage.getItem("token");
+  // 判断 token 是否存在或者访问的路由是否需要登录
+  if (whileList.includes(to.path) || token) {
+    // 如果 token 存在且访问的是 login 
+    if (token && to.path === "/login") { 
+      next(from.path); // 从哪来回哪去 或者中断掉 next(false)
+    } else {
+      next(); // 正常放行
+    }
+  } else {
+    // token 不存在或访问了非白名单的路由直接返回登录页
+    next("/login");
+  }
+});
+
+// 全局解析守卫
+router.beforeResolve((to, from, next) => {
+  // 在这里执行你的逻辑
+  console.log("我是解析守卫");
+  next();
+});
+
+
+// 全局后置守卫 
+router.afterEach((to, from) => {
+  // 调用进度条结束的方法
+  Vnode.component?.exposed?.endLoading();
+});
+```
+
+自己随便写个登录页就行:
+
+```vue
+<!-- login.vue -->
+<template>
+    <div class="box">
+        <form>
+            <input v-model="data.name" type="text" placeholder="用户名" autocomplete="username">
+            <input v-model="data.password" type="password" placeholder="密码" autocomplete="current-password">
+            <button @click="login" type="button">登录</button>
+        </form>
+    </div>
+</template>
+<script setup lang="ts">
+import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+const router = useRouter()
+type Data = {
+    name: string,
+    password: string
+}
+const data: Data = reactive({
+    name: '',
+    password: ''
+})
+const login = () => {
+    console.log(data)
+    if (data.name == '123' && data.password == '123') {
+        localStorage.setItem('token', '123')
+        router.push('/home')
+    } else {
+        alert('用户名或密码错误')
+    }
+}
+</script>
+```
+
+进度条组件:
+
+```vue
+<template>
+    <div class="wraps">
+        <div ref="bar" class="bar"></div>
+    </div>
+</template>
+<script setup lang="ts">
+import { ref,  defineComponent } from 'vue'
+
+let speed = ref<number>(1)
+let bar = ref<HTMLDivElement>()
+let timer = ref<number>(0) // 接受 cancelAnimationFrame 返回的id方便清除或调用
+// 进度条开始
+const startLoading = () => {
+    let dom = bar.value as HTMLDivElement
+    speed.value = 1
+    // 不用定时器因为会引起大量会的回流重绘
+    // requestAnimationFrame 类似定时器 但以60帧帧率进行绘制，性能也更好
+    timer.value =  window.requestAnimationFrame(function fn() { // 这里不用箭头函数是为了方便下面来递归
+        if (speed.value < 90) { //到90就不动等着结束函数直接变成100 欺骗眼睛来达到进度条的效果
+            speed.value += 3 //可以控制进度条速度
+            dom.style.width = `${speed.value}%` // 原理就是改变宽度
+            timer.value = window.requestAnimationFrame(fn) //递归调用自己 每次+3
+        } else {
+            speed.value = 1
+            window.cancelAnimationFrame(timer.value) //清除掉 cancelAnimationFrame 和计时器一样会返回一个id
+        }
+    })
+}
+// // 进度条结束
+const endLoading = () => {
+    let dom = bar.value as HTMLDivElement
+    setTimeout(() => {
+        window.requestAnimationFrame(() => {
+            speed.value = 100
+            dom.style.width = `${speed.value}%`
+        })
+    }, 200);
+}
+defineComponent({
+    name: 'loadingBar'
+})
+// 把方法暴露出去以便调用
+defineExpose({
+    startLoading,
+    endLoading
+})
+</script>
+<style scoped lang="scss">
+.wraps {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 3px;
+
+    .bar {
+        height: inherit;
+        width: 0;
+        background: #e0f804;
+    }
+}
+</style>
+```
+
+> 当然了嫌麻烦有现成的插件 npm install nprogress 
+
+下面是局部守卫：
+
+在路由中定义：
+- `beforeEnter` 
+
+在组件里定义：
+- `beforeRouteEnter`、`beforeRouteUpdate`、`beforeRouteLeave` 选项式api
+- `onBeforeRouteUpdate`、`onBeforeRouteLeave` 组合式api
+
+```ts
+// beforeEnter
+const routes = [
+  {
+    path: '/about',
+    component: About,
+    beforeEnter: (to, from, next) => {
+      // 在这里添加你的逻辑
+      next();
+    }
+  }
+];
+
+// 组件内守卫 (选项式api)
+beforeRouteEnter(to, from, next) {
+  // 在导航到该组件之前调用
+  next();
+},
+beforeRouteUpdate(to, from, next) {
+  // 在当前路由改变，但是该组件被复用时调用
+  next();
+},
+beforeRouteLeave(to, from, next) {
+  // 在导航离开该组件时调用
+  next();
+}
+
+// 组合式api
+import { onBeforeRouteUpdate, onBeforeRouteLeave } from 'vue-router';
+onBeforeRouteUpdate((to, from, next) => {
+    console.log('当前路由改变但组件被复用时触发，如路由参数变化组件实例保持不变时');
+    next();
+});
+onBeforeRouteLeave((to, from, next) => {
+    console.log('离开该路由时触发');
+    next();
+});
+```
