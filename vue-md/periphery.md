@@ -617,7 +617,7 @@ const data = JSON.parse(route.params.item as string) // 这里要和路由的匹
 ]
 ```
 
-#### alias 别名 
+### alias 别名 
 
 就是给这个路由起个别的名字，访问别名时仍会跳转到这个路由
 
@@ -858,4 +858,335 @@ onBeforeRouteLeave((to, from, next) => {
     console.log('离开该路由时触发');
     next();
 });
+```
+
+### 路由元信息
+
+通过路由记录的 `meata` 属性，可以用来定义路由的元信息，比如路由的标题、是否需要登录等。
+如：
+- 权限检验标识
+- 路由组件过渡名称
+- 路由组件是否缓存
+- 标题名称
+
+```ts
+// 路由定义
+[
+   {
+    path: "/login",
+    meta:{ // 这里就是元信息
+      title:"登录"
+    },
+    component: () => import("../components/login.vue"),
+  },
+]
+
+// 解决赋值报错
+declare module 'vue-router'{ //declare module 可以在不破坏原始代码的情况下添加你的东西
+  interface RouteMeta{  // 路由元祖信息的接口
+    title:string  // 手动给它一个类型
+  }
+}
+
+// 可以在守卫中读取到
+router.beforeEach((to, form, next) => {
+  // console.log("我是前置守卫");
+  console.log(to.meta.title);
+  // 当我们将meta的值赋值给document.title时 会报错 --不能将类型“unknown”分配给类型“string”-- 
+  // 参考上面解决
+  document.title = to.meta.title;
+  next();
+});
+```
+
+### 路由过渡动效
+
+这使用 `animate.css` 演示，利用上面的元信息来实现
+
+安装v引入：
+```ts
+npm install animate.css
+
+// main.ts
+import 'animate.css' //animate动画库引入
+```
+
+使用:
+
+定义路由:
+```ts
+//  (还是上面的例子拿来用)
+// 别忘了在里面吧 动画属性也加上
+declare module "vue-router" {
+  interface RouteMeta {
+    title?: string;
+    transitionName?: string;
+  }
+}
+// 路由
+[
+    {
+    path: "/",
+    component: () => import("../components/HelloWorld.vue"),
+    alias: ["/home"],
+    meta: {
+      title: "主页",
+      transitionName: "animate__fadeInDown", //这里定义好动画名
+    },
+  },
+  {
+    path: "/login",
+    meta: {
+      title: "登录",
+      transitionName: "animate__fadeInLeft",
+    },
+    component: () => import("../components/login.vue"),
+  },
+  {
+    path: "/about",
+    component: () => import("../components/about.vue"),
+    meta: {
+      title: "关于",
+      transitionName: "animate__fadeInUp",
+    },
+  },
+]
+```
+
+组件使用:
+
+```vue
+<!-- route路由信息 Component 组件的vnode -->
+<router-view #default="{ route, Component }">
+  <!-- transition vue的过渡动画用的标签  animate__animated是使用该动画库的前缀-->
+  <transition :enter-active-class="` animate__animated ${route.meta.transitionName}`">
+    <!-- 动态组件把要显示的组件绑定进去这样才能触发动画 否则transition内部是空的就报错了 -->
+    <component :is="Component"></component>
+  </transition>
+</router-view>
+```
+
+### 滚动行为
+
+就是实现路由切换后还能浏览上次浏览的地方
+
+```ts
+// 路由实例
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+  // 路由滚动
+  scrollBehavior: (to, from, savedPosition) => {
+    console.log(savedPosition); //{left: 0, top: 0}
+    // return {
+    //   // 返回值是个对象
+    //   top: 0,
+    //   left: 0,
+    // };
+
+    // 支持异步
+    // return new Promise((resolve) => {
+    //   setTimeout(() => {
+    //     resolve({ left: 0, top: 1500 });
+    //   }, 1000);
+    // });
+
+    // 原来浏览到哪里就返回哪里
+    if (savedPosition) { // 注意这个只有使用浏览器的前进后退时才有效
+      return savedPosition;
+    } else {
+      return { left: 0, top: 0 }; // 插一嘴 vue2的router3是 x，y
+    }
+  },
+});
+```
+
+### 动态路由
+
+主要使用 `addRoute` 来添加路由,一般带有权限的路由后端都会返回一个数组，然后前端根据这个数组动态添加路由
+
+删除路由：
+- 添加一个名称冲突的路由，如果添加与现有途径名称相同的途径，会先删除路由，再添加路由根据 name 来判断
+
+```ts
+router.addRoute({ path: '/about', name: 'about', component: About })
+// 这将会删除之前已经添加的路由，因为他们具有相同的名字且名字必须是唯一的
+router.addRoute({ path: '/other', name: 'about', component: Other })
+```
+- 通过调用 router.addRoute() 返回的回调 (当路由没有名称时，这很有用)
+
+```ts
+const removeRoute = router.addRoute(routeRecord)
+removeRoute() // 删除路由如果存在的话
+```
+
+- 通过使用 router.removeRoute() 按名称删除路由
+
+```ts
+router.addRoute({ path: '/about', name: 'about', component: About })
+// 删除路由
+router.removeRoute('about')
+```
+
+查看现有路由:
+- router.hasRoute()：检查路由是否存在。
+- router.getRoutes()：获取一个包含所有路由记录的数组
+
+---
+
+这里写个案例 登录后动态添加路由：
+
+前端：
+
+路由:
+
+```ts
+// 这是公共的路由谁都能访问 
+// 后面会在后端传递 /product 与 /detail/:item 进行动态添加供管理员使用
+[
+  {
+    path: "/",
+    name: "home",
+    component: () => import("../components/HelloWorld.vue"),
+    alias: ["/home"],
+    meta: {
+      title: "主页",
+      transitionName: "animate__fadeInDown",
+    },
+  },
+  {
+    path: "/login",
+    name: "login",
+    meta: {
+      title: "登录",
+    },
+    component: () => import("../components/login.vue"),
+  },
+  {
+    path: "/about", 
+    name: "about",
+    component: () => import("../components/about.vue"),
+    meta: {
+      title: "关于",
+      transitionName: "animate__fadeInUp",
+    },
+  },
+]
+```
+
+登录页：
+
+```ts   
+// 组件我就不放上来了主要逻辑拿上来 自己写个表单提交就行了
+
+// 这里最好是后端返回数据后存在 pinia 或本地 然后再去路由守卫读取动态添加
+// （为了方便就直接在登录这里写了）
+
+import { reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import axios from 'axios' // 记得装axios 用fetch也行随你
+const router = useRouter()
+type Data = {
+    name: string,
+    password: string
+}
+// 用户名密码
+const data: Data = reactive({
+    name: '',
+    password: ''
+})
+// 登录
+const login = async () => {
+    const result = await axios.get('http://localhost:3000/api/permission', { params: data })
+    if (result.data != '账号或密码错误') {
+        initRouter(result.data.route)
+    } else {
+        alert('用户名或密码错误')
+    }
+}
+// 动态添加路由
+const initRouter = (res: []) => {
+    res.forEach((r: any) => {
+      // 路由在已知的路由不存在就添加（因为一些路由是公共的路由谁都可以访问）
+        if (!router.hasRoute(r)) {
+            router.addRoute({ //添加路由
+                path: r.path,
+                name: r.name,
+                //这里本来是 import(`../components/${r.component}`) 但是不能正常使用所以配合后端修改了传送来的component字段 
+                component: () => import(`../components/${r.component}.vue`), 
+            })
+        } else {
+            return
+        }
+    });
+    localStorage.setItem('token', '123') //你可以不写 我这里路由守卫做了处理所以要写
+    router.push('/')
+}
+```
+
+后端：
+
+```js
+import express from "express";
+import cors from "cors";
+
+const app = express();
+
+// 允许跨域
+app.use(cors());
+
+// 路由权限模拟接口
+app.get('/api/permission',(req,res)=>{
+    console.log(req.query);
+    if(req.query.name=='admin'&& req.query.password=='123'){ //管理员用户
+        res.json({
+            route:[
+                {
+                    path:'/',
+                    name:'home',
+                    // 这里配合前端修改后的 少了.vue ，让前端自己拼接不然前端老报错找不到别的方法解决只好这样了
+                    component:'HelloWorld' 
+                },
+                {
+                    path:'/about',
+                    name:'about',
+                    component:'about'
+                },
+                {
+                    path:'/product',
+                    name:'product',
+                    component:'Product'
+                },
+                {
+                    path: "/detail/:item",
+                    name: "detail",
+                    component: 'ProductDetails',
+                }
+            ]
+        })
+    }else if(req.query.name=='123'&& req.query.password=='123'){ //普通用户
+        res.json({
+            route:[
+                {
+                    path:'/',
+                    name:'home',
+                    component:'HelloWorld.vue' // 这是原来准备传的
+                },
+                {
+                    // 为什么和公共重复了，因为这里只是用户所具有的能够访问的路由的列表
+                    // 前端在未登录时也可以约束一些路由不给访问
+                    path:'/about', 
+                    name:'about',
+                    component:'about.vue'
+                },
+            ]
+        })
+    }else{
+        res.send('账号或密码错误')
+    }
+})
+// 启动服务
+app.listen(3000,()=>{
+    console.log('服务器启动成功 http://localhost:3000')
+})
 ```
