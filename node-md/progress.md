@@ -371,3 +371,235 @@ app.get('/api4', (req, res) => {
 ```
 
 只要文件没有变化就会一直用缓存的文件
+
+
+## WebRTC 音视频通话
+
+难点：点对点通讯 
+
+假如 A-B 通讯:
+- A首先生成一个offer（offer就是对网络连接媒体对象的一个描述）发送给B
+- B收到offer后生成一个answer（响应端的对象描述）发送给A
+- A-B要互相发送 candidate ，这玩意会在发送offer和answer的同时发送给对方（候选者，里面是TCP 网络的描述，谷歌浏览器会自定选择最佳网络去通讯）
+- A-B 通讯建立成功
+
+核心：
+-  navigator.mediaDevices.getUserMedia() 读取用户的媒体设备
+- new RTCPeerConnection() 负责在两个端点之间建立和维护实时音视频通信会话
+- socket.io 中转两端的数据来建立连接
+
+下面是演示代码：
+
+前端：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div>
+        <video autoplay controls class="localvideo" src=""></video>
+        <video autoplay controls class="remotevideo" src=""></video>
+
+        <button class="call">打电话</button>
+        <!-- 引入socket.io后会暴露出一个全局变量io等会要用来建立连接 -->
+        <script src="./node_modules/socket.io/client-dist/socket.io.js"></script>
+        <script src="index.js"></script>
+    </div>
+</body>
+</html>
+```
+
+```js
+// index.js
+const call = document.querySelector(".call");
+const localVideo = document.querySelector(".localvideo");
+const remoteVideo = document.querySelector(".remotevideo");
+
+// 写死一个房间号
+const room =122
+
+let peer;//本地和远端的点
+let socket;//全局的socket
+
+// 读取本地媒体 如摄像头麦克风
+const getUserMedia = async()=>{
+    //  navigator.mediaDevices.getUserMedia可以获取本地媒体
+    const stream = await navigator.mediaDevices.getUserMedia({//返回值是Promise 所以弄成异步的函数，流文件
+        video:true, //摄像头（还可以是前置摄像头等等需要自己配置）
+        audio:true,//麦克风
+    }) 
+    // 将流文件赋值给本地的video标签
+    localVideo.srcObject = stream; // srcObject媒体标签的src属性
+    return stream; // 把流返回出去
+}
+
+// 创建本地连接 !!!（本地）
+const  createPeerLocalConnection = async(stream)=>{
+    // 创建点对点通讯服务
+    peer = new RTCPeerConnection() // RTCPeerConnection是WebRTC的API
+    // 添加本地流
+    peer.addStream(stream)
+
+    // 传递 candidate (两端都要互相传)
+    peer.onicecandidate=(event)=>{
+        if(event.candidate){
+            socket.emit("sendCandidate",{candidate:event.candidate,room}) // 发送candidate给信令服务器
+        }
+    } 
+
+    // 3.1 远端流
+    peer.onaddstream = (event) => { 
+        remoteVideo.srcObject = event.stream; // 把远端流赋值给远端video标签
+    } 
+
+    // 1.1 生成offer
+    const offer = await peer.createOffer({
+        offerToReceiveAudio:true, // 表示建立连接时是否愿意接受音频
+        offerToReceiveVideo:true, // 表示建立连接时是否愿意接受视频
+    })
+
+    // 1.2本地存一份 因为发送给另一端后还要用来确认不存一份就莫得了 (异步的) 
+    await peer.setLocalDescription(offer)
+
+    // 1.3 发送给另一端B  (这里用了webSocket)
+    socket.emit("sendOffer",{offer,room}) // 发送offer给信令服务器
+}
+
+// 创建远端连接 !!!（远端）(电话接收方)
+const createPeerRemoteConnection = async (offer)=>{
+    // 创建点对点通讯服务
+    peer = new RTCPeerConnection() 
+
+    // 打开远端摄像头
+    const stream = await getUserMedia()
+
+    // 把流添加进去
+    peer.addStream(stream)
+
+    // 传递 candidate (两端都要互相传)
+    peer.onicecandidate=(event)=>{
+        if(event.candidate){
+            socket.emit("sendCandidate",{candidate:event.candidate,room}) // 发送candidate给信令服务器
+        }
+    }
+
+    // 3.1 传输本地的流 （在远端视角该流就是本地的流）
+    peer.onaddstream = (event) => { 
+        remoteVideo.srcObject = event.stream; // 把远端流赋值给远端video标签
+    } 
+
+    // 1.7 把A的offer添加要给 A发送回去了 到此处A向B发送结束
+    await peer.setRemoteDescription(offer)
+
+    // 开始B向A发送回应
+    // 2.1生成 answer
+    const answer = await peer.createAnswer() // 生成回应
+
+    // 本地也存一份
+    await peer.setLocalDescription(answer) // 存一份
+
+    // 2.2 B-->A answer 服务器来中转
+    socket.emit("sendAnswer",{answer,room}) // 发送answer给信令服务器
+}
+
+// 与后端 io建立连接
+const socketConnect = ()=>{
+    socket = io("http://localhost:3001") // 连接信令服务器
+
+    // 1.4加入到同一个房间
+    socket.emit("joinRoom",room) // 发送房间号给信令服务器
+
+    // 1.5 B 接收 A的offer 名字对应服务端的名字receiveOffer
+    socket.on('receiveOffer', ({ offer }) => {
+        // 1.6 调用远端连接
+        createPeerRemoteConnection(offer)
+    })
+
+    // 2.3 A 接收 B的answer
+    socket.on('receiveAnswer', ({ answer }) => { 
+        peer.setRemoteDescription(answer) // A拿到B的answer
+        // 到此B发送到A结束
+    })
+
+    // 接收 candidate
+    socket.on('receiveCandidate', ({ candidate }) => { // A拿到B的candidate
+        peer.addIceCandidate(candidate) 
+        // 互相发送结束 
+    }) 
+}
+
+const domEvent = ()=>{
+    call.addEventListener("click",async()=>{
+        console.log('已拨电话');
+        // 按下打电话就 调用信令服务器
+        const stream = await getUserMedia()
+        createPeerLocalConnection(stream)
+    })
+}
+
+// 初始化
+const init =()=>{
+    // 需要信令服务器 这里用webSoceket
+    // 初始化事件
+    socketConnect()
+    domEvent()
+}
+
+init()
+```
+
+后端：
+
+记得安装 socket.io (这玩意可以跨语言)
+
+```js
+npm install socket.io
+```
+
+```js
+import {Server} from'socket.io'
+
+const io = new Server(3000, {
+    // 允许跨域
+    cors: {
+        origin: '*'
+    }
+})
+
+// 架构师发布订阅模式
+io.on('connection', socket => {
+    console.log('有人连接上了')
+
+    // 加入房间
+    socket.on('joinRoom', (room)=>{
+        console.log('加入房间', room)
+        socket.join(room) //join 加入就行了
+    })
+
+    // 接收前端发送的消息 offer要和前端emit的对应
+    socket.on('sendOffer', ({offer,room})=>{
+        console.log('收到offer');
+        // console.log(offer); //sdp对象
+        socket.to(room).emit('receiveOffer', {offer}) // 把offer发过去 (A的offer发到B)
+    })
+    
+    // 接收 前端发送的answer
+    socket.on('sendAnswer', ({answer,room})=>{
+        console.log('收到answer');
+        socket.to(room).emit('receiveAnswer', {answer}) // 把answer发过去 (A的answer发到B)
+    })
+
+       // 传递 candidate 
+    socket.on('sendCandidate',({candidate,room})=>{
+        socket.to(room).emit("receiveCandidate",{candidate}) // 发送给信令服务器   
+    })
+})
+
+// 开启服务
+io.listen(3001, () => console.log('listening on *:3001'))
+```
