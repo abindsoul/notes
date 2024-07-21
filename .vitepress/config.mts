@@ -79,6 +79,20 @@ export default defineConfig({
           { text: 'vite', link: '/framework-md/vite.md' },
         ]
       },
+      {
+        text: '服务器',
+        items: [
+          { text: 'Nginx', link: '/server-md/nginx.md' },
+        ]
+      },
+      {
+        text: '代码规范',
+        items: [
+          { text: 'Prettier', link: '/specification-md/prettier.md' },
+          { text: 'Eslint', link: '/specification-md/eslint.md' },
+
+        ]
+      },
       
     ],
     // 页脚的翻页功能

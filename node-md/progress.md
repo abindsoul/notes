@@ -377,7 +377,7 @@ app.get('/api4', (req, res) => {
 
 难点：点对点通讯 
 
-假如 A-B 通讯:
+假如 A->B 通讯:
 - A首先生成一个offer（offer就是对网络连接媒体对象的一个描述）发送给B
 - B收到offer后生成一个answer（响应端的对象描述）发送给A
 - A-B要互相发送 candidate ，这玩意会在发送offer和answer的同时发送给对方（候选者，里面是TCP 网络的描述，谷歌浏览器会自定选择最佳网络去通讯）

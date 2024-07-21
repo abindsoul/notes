@@ -1,3 +1,6 @@
-## 记录笔记的不介绍了 请忽略
+## 一个记录笔记的网站
 
-## Ignoring this project
+预览：
+
+[此处前往](https://abindsoul.github.io/notes/)
+
