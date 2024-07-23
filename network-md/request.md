@@ -513,3 +513,5 @@ location /api {
     // 可以直接使用 curl 接口地址 来访问试试
 }
 ```
+
+详见 Nginx章节,[此处前往](../server-md/nginx.md)
