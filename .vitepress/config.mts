@@ -70,7 +70,10 @@ export default defineConfig({
       },
       {
         text: "服务器",
-        items: [{ text: "Nginx", link: "/server-md/nginx.md" }],
+        items: [
+          { text: "Nginx", link: "/server-md/nginx.md" },
+          { text: "Nest.js", link: "/server-md/nestJs.md" },
+        ],
       },
       {
         text: "代码规范",
