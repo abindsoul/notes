@@ -104,7 +104,7 @@ self.addEventListener("install", (event) => {
   // service worker 有个全局变量 caches
   event.waitUntil(
     // open 里面是缓存名字随便起一般写版本号
-    caches.open("v1.0.0").then((cache) => {
+    caches.open("v1.2.0").then((cache) => {
       return cache.addAll([
         // 数组里写要缓存的文件，目录，图片等等资源
         "/docs",
@@ -127,7 +127,7 @@ self.addEventListener("activate", function (event) {
     Promise.all([
       caches.keys().then((keyList) => {
         keyList.map(function (name) {
-          if (name != "1.0.0") {
+          if (name != "1.2.0") {
             return caches.delete(name);
           }
         });
