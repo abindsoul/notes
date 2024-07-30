@@ -1,6 +1,6 @@
 self.addEventListener('install', function (event) {
     event.waitUntil(
-        caches.open('v1.0.0').then(cache => {
+        caches.open('v1.1.0').then(cache => {
             return cache.addAll([
                 '/',
             ])
@@ -14,7 +14,7 @@ self.addEventListener('activate', function (event) {
         Promise.all([
             caches.keys().then(keyList => {
                 keyList.map(function (name) {
-                    if (name != 'v1.0.0') {
+                    if (name != 'v1.1.0') {
                         return caches.delete(name)
                     }
                 })
