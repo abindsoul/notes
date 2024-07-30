@@ -1,4 +1,4 @@
-# Nest.js
+# Nest.js (暂停更新本章节)
 
 用于构建服务器端应用程序的框架，主要用于开发后端服务。它基于 Node.js 和 Express.js，但提供了更高层次的抽象和更多的功能，如模块化架构、依赖注入、控制器、服务、中间件等,Nest.js 主要用于编写业务逻辑，处理 HTTP 请求，与数据库交互，以及实现各种后端功能
 
@@ -20,7 +20,9 @@ nest new project-name
 
 ```sh
 #配置文件有
-npm run start:dev
+npm run start #（无热更新）
+npm run start:dev #（启用热更新）
+
 ```
 
 ## 案例
@@ -46,6 +48,8 @@ nest g res user
 # WebSockets
 
 #是否生成怎删改查模板 选 Y
+
+# 如果出现undefined (reading 'text')报错 请将typescript版本改为 5.5.3就可以解决
 ```
 
-麻蛋 nest g res user 报莫名其妙的错 明天再看 睡了不熬夜从你我做起
+

@@ -733,6 +733,7 @@ key只能是字符串或者数字利息，必须具有唯一性，使用index做
 
 ## Vue项目进行过哪些优化
 
+SEO:TDK（title，description keywords）爬虫会抓取这三个值所以必须要写
 
 ## 自定义Hooks
 
