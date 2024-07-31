@@ -70,7 +70,10 @@ export default defineConfig({
       },
       {
         text: "框架",
-        items: [{ text: "vite", link: "/md/framework-md/vite.md" }],
+        items: [
+          { text: "vite", link: "/md/framework-md/vite.md" },
+          { text: "webpack", link: "/md/framework-md/webpack.md" }
+        ],
       },
       {
         text: "服务器",

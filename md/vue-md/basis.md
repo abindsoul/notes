@@ -411,6 +411,15 @@ SPA（single-page application）仅在Web页面初始化时加载相应的HTML,J
 `v-if` 适合不频繁切换的场景使用，`v-show` 适合非常频繁切换时使用
 
 
+## v-if与v-for
+
+在 Vue 2 中，`v-for` 的优先级高于 `v-if`
+
+在 Vue 3 中，`v-if` 的优先级高于 `v-for`
+
+不要在同一级标签同时使用
+
+
 ## 动态绑定class与style
 
 都可以使用对象语法或者数组语法进行绑定
