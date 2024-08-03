@@ -2,5 +2,6 @@
     "Codegeex.CompletionDelay": 1,
     "Codegeex.CompletionModel": "CodeGeeX Pro[Beta]",
     "Codegeex.GenerationPreference": "line by line",
-    "liveServer.settings.port": 5502
+    "liveServer.settings.port": 5502,
+    "files.autoSave": "onWindowChange"
 }

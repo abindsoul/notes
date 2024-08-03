@@ -98,6 +98,7 @@ export default defineConfig({
         items: [
           { text: "PWA", link: "/md/other-md/pwa.md" },
           { text: "gulp", link: "/md/other-md/gulp.md" },
+          { text: "monorepo", link: "/md/other-md/monorepo.md" },
 
         ],
       },
