@@ -99,7 +99,8 @@ export default defineConfig({
           { text: "PWA", link: "/md/other-md/pwa.md" },
           { text: "gulp", link: "/md/other-md/gulp.md" },
           { text: "monorepo", link: "/md/other-md/monorepo.md" },
-
+          { text: "esbuild", link: "/md/other-md/esbuild.md" },
+          { text: "cicd", link: "/md/other-md/cicd.md" },
         ],
       },
     ],
