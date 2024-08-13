@@ -101,6 +101,9 @@ export default defineConfig({
           { text: "monorepo", link: "/md/other-md/monorepo.md" },
           { text: "esbuild", link: "/md/other-md/esbuild.md" },
           { text: "cicd", link: "/md/other-md/cicd.md" },
+          { text: "V8", link: "/md/other-md/v8.md" },
+          { text: "puppeteer", link: "/md/other-md/puppeteer.md" },
+
         ],
       },
     ],
