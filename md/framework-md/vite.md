@@ -49,7 +49,7 @@ npv vite build
 4. 登陆 npm 官网发布（注意要在npm源才行）
 
 ```js
-// 添加用户
+// 注册账号
 npm adduser
 // 登录
 npm login

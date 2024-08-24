@@ -83,6 +83,12 @@ export default defineConfig({
         ],
       },
       {
+        text: "NPM",
+        items: [
+          { text: "常见的包", link: "/md/npm-md/oftenUse.md" },
+        ],
+      },
+      {
         text: "代码规范",
         items: [
           { text: "Prettier", link: "/md/specification-md/prettier.md" },
