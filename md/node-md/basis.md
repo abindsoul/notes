@@ -263,7 +263,7 @@ console.log(process.argv);//返回值是个数组里面有 nb66
 // 也可获取路径
 console.log(process.cwd());
 
-// 杀死进程
+// 退出进程
 process.exit()
 ```
 
@@ -279,7 +279,7 @@ ToB 后台管理系统，大屏可视化
 
 服务端渲染，依赖服务器
 
-ToC 新闻，博客，电子商务，门户网站
+ToC 内容密集型应用如新闻，博客，电子商务，门户网站
 
 ### SEO
 
@@ -288,3 +288,326 @@ ToC 新闻，博客，电子商务，门户网站
 TDK:`title` ,`description`, `keywords`
 
 使用语义化标签
+
+
+## path
+
+path模块在不同操作系统有差异（windows和posix）
+
+windows没有完全遵循posix的规范，如在windows中路径使用`\`，posix中使用`/`
+
+### basename
+
+返回给定路径的最后一部分
+
+```js
+const path = require('node:path')
+// windows兼容正斜杠写法
+console.log(path.basename('/hh/nb/index.html'));//index.html
+console.log(path.basename('\\hh\\nb\\index.html'));//index.html
+
+// 模拟linux反斜杠写法（无法处理）
+console.log(path.posix.basename('\\hh\\nb\\index.html'));// \hh\nb\index.html
+
+// 可以使用这种方式处理正反斜杠
+console.log(path.win32.basename('\\hh\\nb\\index.html'));//index.html
+```
+
+### dirname
+
+返回给定路径的目录与basename互补
+
+```js
+console.log(path.dirname('/hh/nb/index.html')); //hh/nb
+```
+
+### extname
+
+```js
+console.log(path.extname('/hh/nb/index.html'));//.html
+// 没有 . 就会返回空字符串
+console.log(path.extname('/hh/nb/index'));// 
+// 多个 . 返回最后一个
+console.log(path.extname('/hh/nb/index.gg.html'));// .html
+```
+
+### .join
+
+讲给定的路径拼接成一个完整的路径
+
+```js
+console.log(path.join('/hh', 'nb', 'index.html'));//\hh\nb\index.html
+
+// 支持操作符
+console.log(path.join('/hh', 'nb', 'index.html','../'));//\hh\nb\
+```
+
+### reslove
+
+也是拼接路径的，但返回的是绝对路径
+
+```js
+console.log(path.resolve('a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q/r/s/t/u/v/w/x/y/z/index.js'));
+//E:\code\node\a\b\c\d\e\f\g\h\i\j\k\l\m\n\o\p\q\r\s\t\u\v\w\x\y\z\index.js
+
+// 多个绝对路径就只返回最后一个
+console.log(path.resolve('/a','/b','/c'));//E:\c
+
+// 只有一个相对路径就会拼接当前工作目录的绝对路径
+console.log(path.resolve('./index.js'));//E:\code\node\index.js (你的文件在哪就是哪)
+console.log(path.resolve('index.js'));//E:\code\node\index.js
+//也可以用__dirname （泛用）
+console.log(path.resolve(__dirname, 'index.js'));//E:\code\node\index.js
+```
+
+### parse
+
+解析路径返回一个对象
+
+```js
+console.log(path.parse('/hh/nb/b.js'));
+/** { 
+ *  root: '/', 根目录
+    dir: '/hh/nb', 文件所在目录
+    base: 'b.js', 文件名+后缀
+    ext: '.js', 后缀名
+    name: 'b' 文件名
+} **/
+```
+
+### format
+
+正好与parse相反，把对象再转成路径
+
+```js
+console.log(path.format({
+    root: '/', 
+    dir: '/hh/nb', 
+    base: 'b.js', 
+    ext: '.js', 
+    name: 'b' 
+}));
+// /hh/nb\b.js
+```
+
+### sep
+
+返回操作系统的路径分隔符,常在跨平台时使用
+
+```js
+// windos系统的分隔符是\
+// ppsix系统的分隔符是/
+console.log(path.sep);
+```
+
+## os
+
+与操作系统交互的模块
+
+### palatform
+
+获取操作系统信息
+
+常见的：
+- windows win32
+- darwin mac
+- linux linux
+
+```js
+//我是windows
+console.log(os.platform());//win32
+```
+
+例子，判断不同的操作系统执行：
+```js
+const os = require('node:os');
+const { exec } = require('node:child_process'); //子进程
+// exec 可以执行shell命令
+
+const platform = os.platform();
+
+const open = (url) => {
+  if (platform === 'darwin') {
+    exec(`open${url}`);
+  } else if (platform === 'linux') {
+    exec('xdg-open ${url}');
+  } else {
+    exec(`start ${url}`);
+  }
+};
+
+open('https://www.okxdm.com');
+```
+
+### release
+
+获取操作系统版本信息
+
+```js
+console.log(os.release());//10.0.19045
+
+// 还有些别的
+console.log(os.type());//Windows_NT
+console.log(os.version());//Windows 10 Home
+console.log(os.arch());//x64
+```
+
+### Homedir
+
+获取用户目录，win底层是调用 `%userprofile%`,mac是 `$HOME`
+
+```js
+console.log(os.homedir());//这个我就不写了哈
+```
+
+### cpus
+
+获取cpu信息
+
+```js
+console.log(os.cpus());
+```
+
+
+## process
+
+process 进程相关信息，不需要引入直接使用
+
+### arch、platform
+
+和os的arch、platform相同
+
+### argv
+
+获取进程的参数，上面有用到过不赘述了
+
+### cwd
+
+获取当前命令执行时的目录，绝对路径，__driname是被执行的文件所在的目录，因为esm不能用__driname,可以用cwd代替一下
+
+```js
+console.log(process.cwd());//E:\code\node
+console.log(__dirname);
+```
+
+### memoryUsage
+
+获取内存信息，常在优化时用，返回值是个对象
+
+```js
+console.log(process.memoryUsage());
+/**
+ * {
+  rss: 38055936,// 物理内存存量
+  heapTotal: 4403200,// v8 分配的总内存
+  heapUsed: 3458976,// 已经使用的内存
+  external: 1130068,// 外部的内存 c c++
+  arrayBuffers: 10515, // 二进制占的总量
+}
+ */
+```
+
+### exit
+
+退出进程，前面用到过，不在赘述
+
+### kill
+
+杀死进程，需要一个进程参数pid
+
+```js
+console.log('等待杀死进程');
+
+setTimeout(() => {
+  process.kill(process.pid);
+}, 2000);
+```
+
+### env （重要）
+
+获取操作系统的所有环境变量,返回值是个对象
+
+可以修改，但只在当前进程中生效，不影响真正的系统环境
+
+```js
+console.log(process.env);
+```
+
+例子：
+区分开发环境和生产环境
+
+安装一下`cross-env`
+
+```sh
+npm install cross-env 
+```
+在项目`package.json`的`scripts`字段写入：
+
+```json
+"dev": "cross-env NODE_ENV=development node index.js",
+"build": "cross-env NODE_ENV=product node index.js"
+```
+
+这样就可以去读取做一个判断
+
+```js
+// index.js文件
+console.log(process.env.NODE_ENV === 'development' ? '开发环境' : '生产环境');
+```
+
+运行一下 `npm run dev`就可以看到打印出开发环境了
+
+
+## child_process 子进程 (核心api)
+
+
+
+> nodeJs 中 所以带有Sync的都是同步方法，不带的都是异步方法，异步方法一般都会提供一个回调函数返回buffer
+
+### exec、execSync
+
+可以帮我们执行shell命令，或者与软件交互
+
+有字节上限 200kb 超出就会报错，所以常用来执行一些较小的立马能拿到结果的shell命令
+
+例子：
+获取ndoe的版本
+```js
+// 
+const { exec, execSync } = require('child_process');
+// 要执行的命令 ，(失败信息，标准输出，错误输出这里的输出都输buffer)
+exec('node -v', (err, stdout, stderr) => {
+  if (err) {
+    return err;
+  }
+  console.log(stdout.toString()); //v20.12.0
+});
+
+const nodeVersion = execSync('node -v').toString();
+console.log(nodeVersion);//v20.12.0
+// 同步用的更多一些
+```
+
+例子：
+创建文件夹
+```js
+const { execSync } = require('child_process');
+execSync('mkdir test');
+```
+
+软件交互例子：
+```js
+const { execSync } = require('child_process');
+
+// 打开谷歌浏览器并打开一个网址
+execSync('start chrome https://www.okxdm.com');
+
+// 打开网抑云 (指定文件路径就行了，转义一下\)
+execSync('E:\\CloudMusic\\cloudmusic.exe');
+```
+
+### spawn、spawnSync
+
+无字节上限，返回的是流并且是实时返回的
+
+spawnSync用的比较少
