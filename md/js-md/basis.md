@@ -4,9 +4,9 @@
 
 ### 基础类型
 
-- string 字符串
-- number 数字
-- boolean 布尔值
+- `string` 字符串
+- `number` 数字
+- `boolean` 布尔值
 - `null`
 - `undefined`
 - `symbol` 唯一值接收字符串为参数
@@ -15,13 +15,13 @@
 
 ### 复杂类型
 
-- Objec 对象
-- Array 数组
-- Function 函数
-- RegExp 正则表达式
-- Date 日期
-- Set 集合 类似数组成员唯一，允许你储存任何类型的唯一值，不会有隐式转换
-- Map 映射 类似对象，键值可以是任意类型，具有极快的查找速度
+- `Objec` 对象
+- `Array` 数组
+- `Function` 函数
+- `RegExp` 正则表达式
+- `Date` 日期
+- `Set` 集合 类似数组成员唯一，允许你储存任何类型的唯一值，不会有隐式转换
+- `Map` 映射 类似对象，键值可以是任意类型，具有极快的查找速度
 
 
 ## 变量

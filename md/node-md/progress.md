@@ -1,4 +1,85 @@
-# Node 进阶
+# Node 进阶案例
+
+
+## ffmpeg
+
+格式转换，音视频处理，流媒体传输，而且跨平台
+
+[官网点击此处](https://ffmpeg.p2hp.com/download.html#build-windows)
+
+
+[下载](https://www.gyan.dev/ffmpeg/builds/)：windows找到release下的zip下载，解压后配置一下环境变量
+
+安装并配置环境变量后运行`ffmpeg -version`输出一大坨就代表成功了
+
+此时我门就可以去调用他的api了
+
+随便准备一个小视频`.mp4`的
+
+1. 格式转换
+
+```js
+// 转成gif, -i 输入的视频文件
+execSync('ffmpeg -i test.mp4 test.gif', { stdio: 'inherit' });
+
+// 转成avi
+execSync('ffmpeg -i test.mp4 test.avi', { stdio: 'inherit' });
+
+// 提取音频
+execSync('ffmpeg -i test.mp4 test.mp3', { stdio: 'inherit' });
+```
+
+2. 视频裁剪
+
+> ss写在 -i的前面可能会导致精度问题，因为视频还没解析就跳转到了相关位置，但是解析速度快
+
+> ss写在 -i后面精度没问题，但是解析速度会变慢
+
+```js
+// -ss 开始的时间 -to 结束的时间
+execSync('ffmpeg -ss 01 -to 05 -i test.mp4 test2.mp4', { stdio: 'inherit' });
+```
+
+3. 加水印
+
+注意指定的字体文件要在当前目录下存在，不指定字体使用默认字体可能会报错...
+
+```js
+// -i是指定要原视频 -y 是指定输出文件名
+// x,y 是指定位置从左上角0,0开始
+execSync('ffmpeg -i test2.mp4 -vf drawtext=fontfile=number.ttf:text="666":fontsize=30:fontcolor=red:x=10:y=10 -y test3.mp4', { stdio: 'inherit' });
+```
+
+4. 去除水印
+
+主要吧水印范围描述到位就行,
+
+```js
+// w 宽 h 高 x y 位置 字体大小30 写了3个字那宽就是3*30=90
+execSync('ffmpeg -i test3.mp4 -vf delogo=w=90:h=30:x=10:y=10 -y test4.mp4', { stdio: 'inherit' });
+```
+
+
+## pngquant
+
+上面是处理音视频，这个就是处理图片的，可以压缩图片的大小，调整透明度等
+
+[官网](http://pngquant.com/)，找到 Command-line 根据你的系统下载，然后配置下环境变量
+
+检查版本`pngquant --version` 输出版本号就成功了
+
+> 注意！！！只能处理 .png 格式的图片
+
+```js
+import { exec } from 'child_process';
+// speed 速度 1-10 越高越快 质量越拉
+// quality 质量 0-100 高质量速度会慢一点
+exec('pngquant test.png --speed=1 --quality=60-82 --output test2.png');
+```
+
+
+
+
 
 ## 大文件上传
 
