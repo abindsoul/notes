@@ -59,6 +59,10 @@ export default defineConfig({
         items: [
           { text: "基础", link: "/md/node-md/basis.md" },
           { text: "进阶", link: "/md/node-md/progress.md" },
+          { text: "脚手架", link: "/md/node-md/cli.md" },
+          { text: "marked", link: "/md/node-md/marked.md" },
+
+
         ],
       },
       {

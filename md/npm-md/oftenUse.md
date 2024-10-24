@@ -37,3 +37,33 @@ fetch('https://api.thecatapi.com/v1/images/search?limit=10&page=1')
     fs.writeFileSync('./index.html', root.serialize())
 })
 ```
+
+## commander
+
+用于构建命令行工具的 npm 库
+
+## inquirer
+
+命令行交互工具
+
+## ora
+
+命令行界面显示加载动画的 npm 库
+
+## download-git-repo
+
+用于下载 Git 仓库的 npm 库，可以指定要下载的仓库和目标目录，并可选择指定分支或标签。Download-git-repo 支持从各种 Git 托管平台（如 GitHub、GitLab、Bitbucket 等）下载代码
+
+## ejs
+
+一款强大的JavaScript模板引擎，它可以帮助我们在HTML中嵌入动态内容
+
+[官网](https://ejs.co/#docs)
+
+## marked
+
+将md 转换成html
+
+## browserSync
+
+开启一个服务 ,它允许你在多个设备上同时预览你的网页，并且当你修改代码时，所有设备上的页面都会自动刷新或更新，无需手动操作

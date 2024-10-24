@@ -946,3 +946,642 @@ console.log(util.format('%d---%s', 666, '天才')); //666---天才
 ### 读取文件
 
 同步 异步 promise 三种
+
+1. 读取文件
+
+```js
+import fs from 'node:fs';
+
+// 异步  适合大文件场景
+fs.readFile(
+  'index.html',
+  {
+    encoding: 'utf-8',
+    flags: 'r',
+  },
+  (err, data) => {
+    if (err) throw err;
+    console.log(data);
+  }
+);
+
+//同步 适合文件小的场景 可以不传第二个参数
+// 返回的是buffer
+let result = fs.readFileSync('./index.html');
+console.log(result.toString('utf-8')); //这里转编码
+console.log('我被阻塞了');
+
+// promise 用着最舒服的
+fs2.readFile('./index.html').then((result) => {
+  console.log(result.toString('utf-8'));
+});
+```
+
+2. 可读流
+
+```js
+import fs from 'node:fs';
+
+// 创建可读流
+const readStream = fs.createReadStream('./index.html');
+// 监听 data
+readStream.on('data', (chunk) => {
+  console.log(chunk.toString('utf-8'));
+});
+// 监听 end
+readStream.on('end', () => {
+  console.log('文件读取完毕');
+});
+
+```
+
+3. 创建文件夹
+
+```js
+import fs from 'node:fs';
+
+// recursive 开启这个才能递归创建多层文件夹
+fs.mkdirSync('./test/test2', { recursive: true });
+
+// 删除文件夹
+// recursive 开启后会吧里面所有内容都删除
+fs.rmSync('./test', { recursive: true });
+```
+
+4. 重命名
+
+```js
+import fs from 'node:fs';
+
+// 参数： 原始名称 ， 新名称
+fs.renameSync('./testt', 'testFather');
+```
+
+5. 监听文件变化
+
+```js
+import fs from 'node:fs';
+
+// 返回监听的事件如change,和监听的内容filename
+fs.watch('./index.html', (event, filename) => {
+  console.log(event, filename);
+});
+```
+
+> fs 的IO操作都是有 `libuv` 完成的,完成之后才会推入v8的事件队列，所以是在计时器时器之后才会执行
+
+6. 写入文件
+
+```js
+// writeFileSync 没有返回值
+// 第一个参数是指定的文件 第二个是要写入的内容，第三个options
+fs.writeFileSync('./index.txt', 'java继父余麻子', {
+  flag: 'a', // 开启这个就是追加写入 而不是全部替换
+});
+
+// appendFileSync 也可以追加
+fs.appendFileSync('index.txt', '\n麒麟哥究竟是谁');
+```
+
+options参数：
+
+- `a`: 打开文件进行追加。 如果文件不存在，则创建该文件
+- `ax`: 类似于 'a' 但如果路径存在则失败
+- `a+`: 打开文件进行读取和追加。 如果文件不存在，则创建该文件
+- `ax+`: 类似于 'a+' 但如果路径存在则失败
+- `as`: 以同步模式打开文件进行追加， 如果文件不存在，则创建该文件
+- `as+`: 以同步模式打开文件进行读取和追加， 如果文件不存在，则创建该文件
+- `r`: 打开文件进行读取， 如果文件不存在，则会发生异常
+- `r+`: 打开文件进行读写， 如果文件不存在，则会发生异常
+- `rs+`: 以同步模式打开文件进行读写。 指示操作系统绕过本地文件系统缓存
+这主要用于在 NFS 挂载上打开文件，因为它允许跳过可能过时的本地缓存， 它对 I/O 性能有非常实际的影响，因此除非需要，否则不建议使用此标志，
+这不会将 fs.open() 或 fsPromises.open() 变成同步阻塞调用， 如果需要同步操作，应该使用类似 fs.openSync() 的东西
+- `w`: 打开文件进行写入， 创建（如果它不存在）或截断（如果它存在）该文件
+- `wx`: 类似于 'w' 但如果路径存在则失败
+- `w+`: 打开文件进行读写。 创建（如果它不存在）或截断（如果它存在）该文件
+- `wx+`: 类似于 'w+' 但如果路径存在则失败
+
+
+7. 可写流
+
+处理大量的数据写入
+
+```js
+import fs from 'node:fs';
+
+let poem = ['黄鹤断矶头,故人今在否?', '旧江山浑是新愁', '欲买桂花同载酒，终不似，少年游。'];
+
+// 创建可写流
+let writeStream = fs.createWriteStream('./index.txt');
+
+poem.forEach((item) => {
+  writeStream.write(item + '\n');
+});
+// 写完后要关掉
+writeStream.end();
+
+// 可以监听事件
+writeStream.on('finish', () => {
+  console.log('写入完毕');
+});
+
+```
+
+8. 软链接、硬链接 
+
+（pnpm底层原理）
+
+```js
+// 硬链接 修改会影响原文件
+fs.linkSync('index.txt', 'index2.txt');
+
+// 软连接 像windows的快捷方式 需要权限才能创建
+// 成功创建会有一个小箭头提示
+fs.symlinkSync('index.txt', 'index3.txt');
+```
+
+## crypto (加密)
+
+
+### 对称加密
+
+```js
+// 对称加密算法
+// 双方协定一个密钥以及iv
+// 第一个参数 algorithm 接受一个算法
+// 第二个参数 key 密钥 32位
+// 第三个参数 iv 初始化向量 支持16位 保证每次生成密钥不一样 却位数会进行补码
+
+// 创建密钥
+let key = crypto.randomBytes(32);
+// 创建向量
+let iv = Buffer.from(crypto.randomBytes(16));
+// 创建加密对象
+const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+//  加密文本
+cipher.update('这是小秘密', 'utf8', 'hex'); // hex 16进制
+const result = cipher.final('hex'); //输出密文 16进制
+console.log(result);
+
+
+// 解密要用相同的 算法 key iv
+const de = crypto.createDecipheriv('aes-256-cbc', key, iv);
+de.update(result, 'hex', 'utf8'); // 参数换了下位置
+console.log(de.final('utf8'));
+```
+
+### 非对称加密
+
+需要公钥私钥
+
+```js
+import crypto from 'node:crypto';
+
+// 非对称加密
+// 生成公钥和私钥
+// 私钥只能管理员拥有
+// 公钥可以任何人拥有
+
+const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+  modulusLength: 2048, // 长度越长越安全 也越慢
+  // 下面这两可以省略
+  publicKeyEncoding: {
+    type: 'spki',
+    format: 'pem',
+  },
+  privateKeyEncoding: {
+    type: 'pkcs8',
+    format: 'pem',
+  },
+});
+
+// 公钥加密
+const encrypted = crypto.publicEncrypt(publicKey, Buffer.from('我是小秘密'));
+console.log(encrypted);
+
+// 私钥解密
+const decrypted = crypto.privateDecrypt(privateKey, encrypted);
+console.log(decrypted.toString());
+
+```
+
+
+### 哈希函数
+
+```js
+import crypto from 'node:crypto';
+
+// 不能被解密 单向不可逆的 具有唯一性
+// 并不是非常安全 会撞库
+// 可以做文件完整性校验 读取文件内容上传服务端，服务端也生成md5和前端的md5对比 不一致就有问题
+
+let hash = crypto.createHash('sha256'); //算法 一般用md5
+
+hash.update('我真的不能告诉你');
+
+console.log(hash.digest('hex')); // 输出16进制
+```
+
+
+## zlib
+
+压缩文件，两种方式 gzip 和 deflate
+
+- 压缩算法：Gzip 使用的是 Deflate 压缩算法，该算法结合了 LZ77 算法和哈夫曼编码，LZ77 算法用于数据的重复字符串的替换和引用，而哈夫曼编码用于进一步压缩数据
+- 压缩效率：Gzip 压缩通常具有更高的压缩率，因为它使用了哈夫曼编码来进一步压缩数据，哈夫曼编码根据字符的出现频率，将较常见的字符用较短的编码表示，从而减小数据的大小
+- 压缩速度：相比于仅使用 Deflate 的方式，Gzip 压缩需要更多的计算和处理时间，因为它还要进行哈夫曼编码的步骤，因此，在压缩- 速度方面，Deflate 可能比 Gzip 更快
+- 应用场景：Gzip 压缩常用于文件压缩，Deflate 常用于网络传输和 HTTP 响应的内容编码
+
+
+### gzip
+
+压缩文件：
+
+```js
+const zlib = require('zlib');
+const fs = require('node:fs');
+
+// 压缩
+const readStream = fs.createReadStream('index.html');
+const writeStream = fs.createWriteStream('index.html.gz'); //注意后缀名
+// pipe 管道操作 处理流进入下一个管道处理
+readStream.pipe(zlib.createGzip()).pipe(writeStream);
+writeStream.on('finish', () => {
+  console.log('压缩完成');
+});
+```
+
+解压文件：
+
+```js
+const zlib = require('zlib');
+const fs = require('node:fs');
+
+// 解压
+const readStream = fs.createReadStream('index.html.gz');
+const writeStream = fs.createWriteStream('index2.html');
+// createGunzip 注意和上面不一样
+readStream.pipe(zlib.createGunzip()).pipe(writeStream);
+writeStream.on('finish', () => {
+  console.log('解压完成');
+});
+``` 
+
+### deflate
+
+压缩文件：
+```js
+const zlib = require('zlib');
+const fs = require('node:fs');
+
+// 压缩
+const readStream = fs.createReadStream('index.html');
+const writeStream = fs.createWriteStream('index.html.deflate'); //主要后缀名 deflate
+// createDeflate() 压缩
+readStream.pipe(zlib.createDeflate()).pipe(writeStream);
+writeStream.on('finish', () => {
+  console.log('压缩完成');
+});
+```
+
+解压文件：
+
+```js
+const zlib = require('zlib');
+const fs = require('node:fs');
+
+// 解压
+const readStream = fs.createReadStream('index.html.deflate'); // deflate
+const writeStream = fs.createWriteStream('index3.html');
+// createInflate 解压
+readStream.pipe(zlib.createInflate()).pipe(writeStream);
+writeStream.on('finish', () => {
+  console.log('解压完成');
+});
+```
+
+### 压缩http响应
+
+deflate更快更小更适合
+
+```js
+const zlib = require('zlib');
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  // 重复一千次字符串
+  const txt = '你是天才'.repeat(1000);
+  //   res.setHeader('Content-Encoding', 'gzip'); // gzip压缩
+  res.setHeader('Content-Encoding', 'deflate'); // deflate压缩
+  res.setHeader('Content-Type', 'text/plain;charset=utf-8');
+  //   let result = zlib.gzipSync(txt); // gzip压缩
+  let result = zlib.deflateSync(txt); // deflate压缩
+  res.end(result);
+});
+
+// 端口号要小于65535
+server.listen(3000, () => {
+  console.log('http://localhost:3000');
+});
+```
+
+## http
+
+原生的写法,测试请求vscode安装一个 REST Client插件编写 `.http` 文件
+
+server.http:
+
+```
+# POST http://127.0.0.1:3000/login HTTP/1.1
+
+# Content-Type: application/json
+
+# {
+#     "name":"张三"
+# }
+
+GET http://127.0.0.1:3000/get?a=111&b=2222 HTTP/1.1
+```
+
+index.js:
+```js
+const http = require('http');
+const url = require('url');
+
+const server = http.createServer((req, res) => {
+  // pathname 可以读到请求的路径
+  // query 可以读到请求的参数(get请求的参数)
+  // true 会吧参数序列化成对象
+  const { pathname, query } = url.parse(req.url, true);
+  // 判断请求类型
+  if (req.method === 'POST') {
+    // 路由
+    if (pathname === '/login') {
+      let data = '';
+      // 注意接收到的是流
+      req.on('data', (chunk) => {
+        data += chunk;
+      });
+      req.on('end', () => {
+        res.setHeader('Content-Type', 'application/json');
+        res.statusCode = 200;
+        res.end(data);
+      });
+    } else {
+      res.statusCode = 404;
+      res.end('404');
+    }
+  } else if (req.method === 'GET') {
+    if (pathname === '/get') {
+      res.statusCode = 200;
+      res.end('get');
+    } else {
+      res.statusCode = 404;
+      res.end('404');
+    }
+  }
+});
+
+server.listen(3000, () => {
+  console.log('http server running at http://127.0.0.1:3000');
+});
+
+```
+
+## 反向代理 
+
+需要的库 `http-proxy-middleware`
+
+这里把80代理到3000
+
+index.js(80服务):
+```js
+const http = require('node:http');
+const url = require('node:url');
+const fs = require('node:fs');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+// 获取html
+const html = fs.readFileSync('./index.html', 'utf-8');
+
+// 读取代理配置文件
+const config = require('./xx.config.js');
+
+// 起服务
+const server = http.createServer((req, res) => {
+  const { pathname } = url.parse(req.url);
+  // 从配置文件获取代理的路径
+  const proxyList = Object.keys(config.serve.proxy);
+  if (proxyList.includes(pathname)) {
+    // 代理
+    const proxy = createProxyMiddleware(config.serve.proxy[pathname]);
+    proxy(req, res, (err) => {
+      if (err) {
+        console.log(err);
+        return;
+      }
+      return;
+    });
+    return;
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/html',
+  });
+  res.end(html);
+});
+
+server.listen(80, () => {
+  console.log('http://localhost:80');
+});
+
+```
+
+xx.config.js(代理配置文件,名字随意和上面对应上):
+```js
+module.exports = {
+  serve: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        // 这里没有重写那就要在另一个服务做一下处理
+        // rewrite: (path) => {
+        //   return path.replace(/^\/api/, '');
+        // },
+      },
+      '/xxx': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+      },
+    },
+  },
+};
+
+```
+
+index.html(会拦截到/api然后访问配置文件对应的真实地址):
+```html
+<!DOCTYPE html>
+<html>
+<head></head>
+<body>
+    <script>
+        fetch('/api').then(res => res.text())
+    </script>
+</body>
+</html>
+```
+
+test.js(3000服务):
+```js
+const htttp = require('http');
+const url = require('node:url');
+
+const server = htttp.createServer((req, res) => {
+  const { pathname } = url.parse(req.url);
+  // 这里是代理的路径没有处理api，所以这里要处理一下
+  if (pathname === '/api') {
+    res.end('proxy 成功');
+  }
+});
+server.listen(3000, () => {
+  console.log('http://localhost:3000');
+});
+
+```
+
+## 动静分离
+
+需要的库 `npm i mime`,设置返回的响应头用(根据url的后缀自动分析)
+
+```js
+import http from 'node:http'
+import fs from 'node:fs'
+import path from 'node:path'
+import mime from 'mime'
+
+const server = http.createServer((req, res) => {
+    const { method, url } = req
+    // 处理静态资源 此处是static目录 请求时记得加上
+    if (method === 'GET' && url.startsWith('/static')) {
+        const staticPath = path.join(process.cwd(), url)
+        // 根据路径读取文件
+        fs.readFile(staticPath, (err, data) => {
+            if (err) {
+                console.log(err);
+                res.writeHead(404, {
+                    'content-type': 'text/plain'
+                })
+                res.end('not found')
+            } else {
+                console.log('哈哈哈我来访问了');// 测试缓存
+                // 用mime获取文件类型
+                const type = mime.getType(staticPath)
+                res.writeHead(200, {
+                    'content-type': type,
+                    'cache-control': 'public, max-age=3600',// 缓存1小时
+                })
+                res.end(data)
+            }
+        })
+    }
+    // 处理动态资源
+    if(method === 'GET' || method === 'POST' && url === '/api'){
+        // 接口逻辑.....
+        res.writeHead(200, {
+            'content-type': 'text/plain'
+        })
+        res.end('hello')
+    }
+})
+server.listen(80,()=>{
+    console.log('服务器启动成功 in http://127.0.0.1')
+})
+```
+
+## 邮件服务
+
+需要的库:
+- 解析邮件账号(密码|授权码)yaml文件 `npm i js-yaml`
+- 发送邮件 `npm i nodemailer`
+
+[qq授权码申请地址](https://wx.mail.qq.com/list/readtemplate?name=app_intro.html#/agreement/authorizationCode)
+
+.yaml (别忘了创建不然等会拿不到)
+```yaml
+pass: xxx密码|授权码
+user: xxx你的邮箱账号
+```
+
+随便写个js起服务
+```js
+import nodemailer from 'nodemailer';
+import yaml from 'js-yaml';
+import http from 'node:http';
+import fs from 'node:fs';
+import url from 'node:url';
+
+// 初始化邮件服务
+const mailConfig = yaml.load(fs.readFileSync('./mail.yaml', 'utf8'))
+const transporter = nodemailer.createTransport({
+  service: 'qq', //服务商
+  host: 'smtp.qq.com', //主机
+  port: 465, //端口
+  secure: true, //开启https
+  auth: {
+    user: mailConfig.user, //邮箱
+    pass: mailConfig.pass, //密码|授权码
+  },
+});
+
+http
+  .createServer(async (req, res) => {
+    // 发送邮件
+    // transporter.sendMail({
+    //     from: '',//发件人
+    //     to: '',//收件人
+    //     subject: '',//主题
+    //     text: '',//正文
+    //     html: '',//html格式
+    //     attachments: []//附件
+    // })
+    const { pathname } = url.parse(req.url);
+    const { method } = req;
+    if (method === 'POST' && pathname === '/send/mail') {
+      let data = '';
+      req.on('data', (chunk) => {
+        data += chunk;
+      });
+      req.on('end', () => {
+        const { to, subject, text } = JSON.parse(data);
+        transporter.sendMail({
+          from:mailConfig.user,
+          to,
+          subject,
+          text,
+        })
+        res.end('邮件发送成功');
+      });
+    }
+  })
+  .listen(3000, () => {
+    console.log('服务已启动 http://localhost:3000');
+  });
+```
+
+向`http://localhost:3000/send/mail` 发亲求测试
+
+(这是vscode插件生成的，不是原生的，测试请求vscode安装一个 REST Client插件编写 `.http` 文件)
+
+.http 
+```http
+POST http://localhost:3000/send/mail HTTP/1.1
+Content-Type: application/json
+
+{
+    "to":"xxxxx@qq.com",
+    "subject":"标题",
+    "text":"我想你了，最近还好吗？"
+}
+```
